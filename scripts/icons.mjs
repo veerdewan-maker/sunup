@@ -8,7 +8,7 @@ const shot = async (name, size, pad, square) => {
   const page = await browser.newPage({ viewport: { width: size, height: size } });
   const inner = Math.round(size * (1 - pad * 2));
   const s = square ? svg.replace('rx="112"', 'rx="0"') : svg;
-  await page.setContent(`<body style="margin:0;background:${square ? '#0e1116' : 'transparent'};display:grid;place-items:center;width:${size}px;height:${size}px"><div style="width:${inner}px;height:${inner}px">${s}</div></body>`);
+  await page.setContent(`<body style="margin:0;background:${square ? '#0d1f15' : 'transparent'};display:grid;place-items:center;width:${size}px;height:${size}px"><div style="width:${inner}px;height:${inner}px">${s}</div></body>`);
   await page.screenshot({ path: `public/${name}`, omitBackground: !square });
   await page.close();
 };

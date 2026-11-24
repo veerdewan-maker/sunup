@@ -93,13 +93,14 @@ export function Settings() {
       <section className="card">
         <h2>Goal and plan</h2>
         <div className="label">Goal</div>
-        <Chips label="Goal" value={goal} onChange={setGoal} options={(Object.keys(GOAL_LABEL) as Goal[]).map((g) => ({ value: g, label: GOAL_LABEL[g] }))} />
+        <Chips cols={2} label="Goal" value={goal} onChange={setGoal} options={(Object.keys(GOAL_LABEL) as Goal[]).map((g) => ({ value: g, label: GOAL_LABEL[g] }))} />
         <div className="label">Days per week</div>
-        <Chips label="Days per week" value={days} onChange={setDays} options={[2, 3, 4, 5, 6].map((d) => ({ value: d, label: String(d) }))} />
+        <Chips cols={5} label="Days per week" value={days} onChange={setDays} options={[2, 3, 4, 5, 6].map((d) => ({ value: d, label: String(d) }))} />
         <div className="label">Time per workout</div>
-        <Chips label="Time per workout" value={sessionMin} onChange={setSessionMin} options={[30, 45, 60, 90].map((d) => ({ value: d, label: `${d} min` }))} />
+        <Chips cols={4} label="Time per workout" value={sessionMin} onChange={setSessionMin} options={[30, 45, 60, 90].map((d) => ({ value: d, label: `${d} min` }))} />
         <div className="label">Equipment</div>
         <Chips
+          cols={2}
           label="Equipment"
           value={preset}
           onChange={setPreset}
@@ -146,7 +147,7 @@ export function Settings() {
       <section className="card">
         <h2>Preferences</h2>
         <div className="label">Weight units</div>
-        <Chips<Units> label="Weight units" value={p.units} onChange={(u) => updateProfile({ units: u })} options={[{ value: 'kg', label: 'Kilograms' }, { value: 'lb', label: 'Pounds' }]} />
+        <Chips<Units> cols={2} label="Weight units" value={p.units} onChange={(u) => updateProfile({ units: u })} options={[{ value: 'kg', label: 'Kilograms' }, { value: 'lb', label: 'Pounds' }]} />
         <label className="check">
           <input type="checkbox" checked={s.settings.restTimer} onChange={(e) => patchSettings({ restTimer: e.target.checked })} /> Start a rest timer when I tick a set
         </label>

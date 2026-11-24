@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { shortDate } from '../lib/util';
 
 export function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
@@ -173,14 +173,17 @@ export function Chips<T extends string | number>({
   value,
   onChange,
   label,
+  cols,
 }: {
   options: { value: T; label: string }[];
   value: T;
   onChange: (v: T) => void;
   label?: string;
+  /** Lay the choices out as equal columns that fill the row. */
+  cols?: number;
 }) {
   return (
-    <div className="chips" role="radiogroup" aria-label={label}>
+    <div className={'chips' + (cols ? ' fill' : '')} style={cols ? ({ '--cols': cols } as CSSProperties) : undefined} role="radiogroup" aria-label={label}>
       {options.map((o) => (
         <button
           key={String(o.value)}

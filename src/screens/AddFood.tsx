@@ -48,6 +48,7 @@ function FoodSheet({ food, meal, date, onClose, onAdded }: { food: FoodItem; mea
       </p>
       {hasServing && (
         <Chips
+          cols={2}
           label="Measure"
           value={mode}
           onChange={(v) => {
@@ -85,7 +86,7 @@ function FoodSheet({ food, meal, date, onClose, onAdded }: { food: FoodItem; mea
         </div>
       </div>
       <div className="label">Meal</div>
-      <Chips label="Meal" value={toMeal} onChange={setToMeal} options={MEALS.map((x) => ({ value: x.id, label: x.label }))} />
+      <Chips cols={2} label="Meal" value={toMeal} onChange={setToMeal} options={MEALS.map((x) => ({ value: x.id, label: x.label }))} />
       <div className="btn-col">
         <button
           className="btn primary block"
@@ -194,7 +195,7 @@ function CustomFoodForm({ initial, barcode, onSaved, onClose }: { initial?: Food
         </div>
       </label>
       <div className="label">Nutrition is for</div>
-      <Chips label="Nutrition is for" value={basis} onChange={setBasis} options={[{ value: 'serving', label: '1 serving' }, { value: 'g', label: '100 g' }]} />
+      <Chips cols={2} label="Nutrition is for" value={basis} onChange={setBasis} options={[{ value: 'serving', label: '1 serving' }, { value: 'g', label: '100 g' }]} />
       {basis === 'serving' && (
         <label className="field">
           <span>Serving description (optional)</span>

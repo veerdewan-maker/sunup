@@ -12,7 +12,7 @@ function CheckinCard() {
   const c = useMemo(() => buildCheckin(s), [s]);
   const sign = (n: number) => (n > 0 ? '+' : '');
   return (
-    <section className="card note">
+    <section className="card tip">
       <h2>Weekly check-in</h2>
       <div className="stats">
         <div>
