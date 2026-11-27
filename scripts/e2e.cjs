@@ -214,6 +214,20 @@ let dbgPage;
   await shot('13b-measurements');
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   check('measurements are saved', await page.getByText('84 cm').isVisible() && await page.getByText('36.5 cm').isVisible());
+  // A small real image stands in for a camera photo.
+  const png = await page.evaluate(() => { const c = document.createElement('canvas'); c.width = 300; c.height = 400; const g = c.getContext('2d'); g.fillStyle = '#3a7'; g.fillRect(0, 0, 300, 400); return c.toDataURL('image/png').split(',')[1]; });
+  for (let i = 0; i < 2; i++) {
+    await page.getByLabel('Progress photo file').setInputFiles({ name: `p${i}.png`, mimeType: 'image/png', buffer: Buffer.from(png, 'base64') });
+    await page.getByRole('button', { name: 'Add front photo' }).waitFor();
+  }
+  check('progress photos are saved', await page.waitForFunction(() => document.querySelectorAll('.photo-tile img').length === 2, null, { timeout: 5000 }).then(() => true, () => false));
+  await page.getByRole('button', { name: 'Compare', exact: true }).click();
+  check('before and after view shows two photos', await page.waitForFunction(() => document.querySelectorAll('[role=dialog] img').length === 2, null, { timeout: 5000 }).then(() => true, () => false));
+  await shot('13c-photos-compare');
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  await page.reload();
+  await page.getByRole('button', { name: 'Progress', exact: true }).click();
+  check('photos are still there after a reload', await page.waitForFunction(() => document.querySelectorAll('.photo-tile img').length === 2, null, { timeout: 5000 }).then(() => true, () => false));
   check('strength chart lists the lift', (await page.getByLabel('Choose a lift').inputValue()).length > 0);
   await overflow('progress');
   await smallTargets('progress');
@@ -222,14 +236,24 @@ let dbgPage;
   // ----- Settings: backup, erase, restore -----
   await page.getByRole('button', { name: 'Today', exact: true }).click();
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('radio', { name: '+50 g' }).click();
   await overflow('settings');
   await smallTargets('settings');
   await shot('14-settings');
+  await page.locator('.page-head').getByLabel('Back').click();
+  await page.getByRole('button', { name: 'Eat', exact: true }).click();
+  check('training day gets extra carbs', await page.getByText('of 2820 kcal eaten').isVisible(), await page.locator('.card').first().textContent());
+  await page.getByRole('radio', { name: 'Rest day' }).click();
+  const restKcal = Number((await page.getByText(/of \d+ kcal eaten/).textContent()).match(/of (\d+)/)[1]);
+  check('rest day gives the carbs back', restKcal < 2620, String(restKcal));
+  await shot('12c-eat-rest-day');
+  await page.getByRole('button', { name: 'Today', exact: true }).click();
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
   const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Save a backup file' }).click()]);
   const file = path.join(OUT, 'backup.json');
   await download.saveAs(file);
   const backup = JSON.parse(fs.readFileSync(file, 'utf8'));
-  check('backup file contains workouts and food', backup.state.sessions.length === 2 && backup.state.foodEntries.length === 6 && backup.state.savedMeals.length === 1 && backup.state.measurements.length === 1);
+  check('backup file contains workouts and food', backup.state.sessions.length === 2 && backup.state.foodEntries.length === 6 && backup.state.savedMeals.length === 1 && backup.state.measurements.length === 1 && backup.state.photos.length === 0);
   await page.getByRole('button', { name: 'Erase everything' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Erase everything' }).click();
   await page.getByRole('heading', { name: "What's your main goal?" }).waitFor();

@@ -4,7 +4,7 @@ import type { Profile, Session } from '../types';
 import { available, equipmentFor, generatePlan } from './plan';
 import { e1rm, sessionPRs, suggest } from './progression';
 import { suggestKcalDelta } from './stats';
-import { calcTargets } from './targets';
+import { calcTargets, dayTargets } from './targets';
 import { addDays, ymd } from './util';
 
 const base: Profile = {
@@ -124,5 +124,21 @@ describe('check-in', () => {
     const weights = [w(20, 80), w(18, 80), w(15, 80), w(5, 79.3), w(3, 79.2), w(0, 79.1)];
     expect(suggestKcalDelta('fat', weights, today)).toBe(0);
     expect(suggestKcalDelta('fat', [w(0, 80)], today)).toBe(0);
+  });
+});
+
+describe('training-day carbs', () => {
+  const t = { kcal: 2500, protein: 160, carbs: 300, fat: 70, waterMl: 2500 };
+  it('adds carbs on training days and takes them back on rest days, keeping the week the same', () => {
+    const train = dayTargets(t, 50, 4, true);
+    const rest = dayTargets(t, 50, 4, false);
+    expect(train.carbs).toBe(350);
+    expect(train.kcal).toBe(2700);
+    expect(rest.carbs).toBe(235);
+    expect(Math.abs(4 * train.carbs + 3 * rest.carbs - 7 * t.carbs)).toBeLessThanOrEqual(15);
+  });
+  it('changes nothing when off, and never takes from rest days that do not exist', () => {
+    expect(dayTargets(t, 0, 4, true)).toEqual(t);
+    expect(dayTargets(t, 50, 7, false).carbs).toBe(300);
   });
 });

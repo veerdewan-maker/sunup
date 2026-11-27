@@ -41,3 +41,15 @@ export function calcTargets(p: Profile, weightKg: number = p.startWeightKg): Tar
   const carbs = Math.max(0, round((kcal - protein * 4 - fat * 9) / 4, 5));
   return { kcal, protein, carbs, fat, waterMl: 2500 };
 }
+
+/**
+ * Carb cycling: training days get `extraCarbs` more grams, and rest days give the same total back,
+ * so the weekly average stays the same. With a workout every day there is no rest day to take from.
+ */
+export function dayTargets(base: Targets, extraCarbs: number, planDays: number, training: boolean): Targets {
+  if (!extraCarbs) return base;
+  const restDays = 7 - planDays;
+  const shift = training ? extraCarbs : restDays > 0 ? -round((extraCarbs * planDays) / restDays, 5) : 0;
+  const carbs = Math.max(0, base.carbs + shift);
+  return { ...base, carbs, kcal: base.kcal + (carbs - base.carbs) * 4 };
+}
