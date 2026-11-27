@@ -6,6 +6,7 @@ import { buildCheckin, checkinDue, currentWeight, foodStreak, weeklyCounts, week
 import { addDays, fmtBody, fmtWeight, fromDisplay, niceDate, parseYmd, shortDate, toDisplay, ymd } from '../lib/util';
 import { deleteMeasurements, deleteWeight, logMeasurements, logWeight, saveCheckin, useStore } from '../store';
 import type { MeasureKey } from '../types';
+import { PhotosCard } from './Photos';
 
 function CheckinCard() {
   const s = useStore();
@@ -315,6 +316,8 @@ export function Progress() {
       </section>
 
       <MeasurementsCard />
+
+      <PhotosCard />
 
       <section className="card">
         <div className="card-head">

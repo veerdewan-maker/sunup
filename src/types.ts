@@ -172,6 +172,15 @@ export interface MeasureLog {
   cm: Partial<Record<MeasureKey, number>>;
 }
 
+export type Pose = 'front' | 'side' | 'back';
+
+/** A progress photo. The image itself is kept in IndexedDB under `photo-<id>`, not in the app state. */
+export interface PhotoMeta {
+  id: string;
+  date: string;
+  pose: Pose;
+}
+
 export interface Checkin {
   date: string;
   weightChangeKg: number | null;
@@ -188,6 +197,10 @@ export interface Settings {
   lastBackupAt?: string;
   installHintDismissed?: boolean;
   backupNudgeAt?: string;
+  /** Extra grams of carbs on training days (0 = off); rest days give them back. */
+  trainCarbs?: number;
+  /** Days the user marked as training (true) or rest (false) by hand. */
+  dayType?: Record<string, boolean>;
 }
 
 export interface AppState {
@@ -204,6 +217,7 @@ export interface AppState {
   weights: WeightLog[];
   savedMeals: SavedMeal[];
   measurements: MeasureLog[];
+  photos: PhotoMeta[];
   checkins: Checkin[];
   settings: Settings;
   /** When this copy was written to storage. */

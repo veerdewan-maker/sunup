@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Chips, NumField, Page, Sheet, toast } from '../components/ui';
 import { EQUIPMENT } from '../data/exercises';
-import { GOAL_LABEL, calcTargets } from '../lib/targets';
+import { GOAL_LABEL, calcTargets, dayTargets } from '../lib/targets';
 import { currentWeight } from '../lib/stats';
 import { fromDisplay, shortDate, toDisplay, ymd } from '../lib/util';
 import { useNav } from '../nav';
@@ -148,6 +148,26 @@ export function Settings() {
         <h2>Preferences</h2>
         <div className="label">Weight units</div>
         <Chips<Units> cols={2} label="Weight units" value={p.units} onChange={(u) => updateProfile({ units: u })} options={[{ value: 'kg', label: 'Kilograms' }, { value: 'lb', label: 'Pounds' }]} />
+        <div className="label">Extra carbs on training days</div>
+        <Chips<number>
+          cols={4}
+          label="Extra carbs on training days"
+          value={s.settings.trainCarbs ?? 0}
+          onChange={(v) => patchSettings({ trainCarbs: v })}
+          options={[
+            { value: 0, label: 'Off' },
+            { value: 25, label: '+25 g' },
+            { value: 50, label: '+50 g' },
+            { value: 75, label: '+75 g' },
+          ]}
+        />
+        <p className="muted small">
+          {(s.settings.trainCarbs ?? 0) > 0
+            ? p.days < 7
+              ? `Days you work out get ${s.settings.trainCarbs} g more carbs. Rest days get ${dayTargets(s.targets, s.settings.trainCarbs!, p.days, false).carbs - s.targets.carbs} g, so your weekly total stays the same.`
+              : `Every day is a training day in your plan, so every day gets ${s.settings.trainCarbs} g more carbs.`
+            : 'More fuel on the days you lift, a little less on rest days. Your weekly total stays the same.'}
+        </p>
         <label className="check">
           <input type="checkbox" checked={s.settings.restTimer} onChange={(e) => patchSettings({ restTimer: e.target.checked })} /> Start a rest timer when I tick a set
         </label>

@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { Bar, Ring, Sheet, toast } from '../components/ui';
+import { Bar, Chips, Ring, Sheet, toast } from '../components/ui';
 import { totalsFor } from '../lib/stats';
 import { addDays, niceDate, ymd } from '../lib/util';
 import { useNav } from '../nav';
-import { copyMeal, deleteFoodEntry, saveMeal, useStore } from '../store';
+import { copyMeal, deleteFoodEntry, isTrainingDay, saveMeal, setDayType, targetsFor, useStore } from '../store';
 import type { Meal } from '../types';
 import { WaterCard } from './Today';
 
@@ -22,6 +22,8 @@ export function Eat() {
   const [saving, setSaving] = useState<Meal | null>(null);
   const [mealName, setMealName] = useState('');
   const totals = totalsFor(s.foodEntries, date);
+  const t = targetsFor(s, date);
+  const cycling = (s.settings.trainCarbs ?? 0) > 0;
   const yesterday = addDays(date, -1);
 
   return (
@@ -42,16 +44,28 @@ export function Eat() {
       </header>
 
       <section className="card">
+        {cycling && (
+          <Chips
+            cols={2}
+            label="Day type"
+            value={isTrainingDay(s, date) ? 'train' : 'rest'}
+            onChange={(v) => setDayType(date, v === 'train')}
+            options={[
+              { value: 'train', label: 'Training day' },
+              { value: 'rest', label: 'Rest day' },
+            ]}
+          />
+        )}
         <div className="food-summary">
-          <Ring value={totals.kcal} target={s.targets.kcal} />
+          <Ring value={totals.kcal} target={t.kcal} />
           <div className="grow">
-            <Bar label="Protein" value={totals.protein} target={s.targets.protein} unit="g" color="var(--protein)" />
-            <Bar label="Carbs" value={totals.carbs} target={s.targets.carbs} unit="g" color="var(--carbs)" />
-            <Bar label="Fat" value={totals.fat} target={s.targets.fat} unit="g" color="var(--fat)" />
+            <Bar label="Protein" value={totals.protein} target={t.protein} unit="g" color="var(--protein)" />
+            <Bar label="Carbs" value={totals.carbs} target={t.carbs} unit="g" color="var(--carbs)" />
+            <Bar label="Fat" value={totals.fat} target={t.fat} unit="g" color="var(--fat)" />
           </div>
         </div>
         <p className="muted small center">
-          {Math.round(totals.kcal)} of {s.targets.kcal} kcal eaten
+          {Math.round(totals.kcal)} of {t.kcal} kcal eaten
         </p>
       </section>
 

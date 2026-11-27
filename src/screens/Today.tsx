@@ -4,7 +4,7 @@ import { GOAL_LABEL } from '../lib/targets';
 import { checkinDue, finished, nextPlanDayIndex, totalsFor, workoutsInWeek } from '../lib/stats';
 import { daysBetween, ymd } from '../lib/util';
 import { useNav } from '../nav';
-import { addWater, patchSettings, startWorkout, useStore } from '../store';
+import { addWater, isTrainingDay, patchSettings, startWorkout, targetsFor, useStore } from '../store';
 import type { Meal } from '../types';
 
 export function mealForNow(): Meal {
@@ -55,6 +55,7 @@ export function Today() {
   const today = ymd();
   const p = s.profile!;
   const totals = totalsFor(s.foodEntries, today);
+  const t = targetsFor(s, today);
   const plan = s.plan;
   const next = plan?.days[nextPlanDayIndex(s)];
   const doneToday = finished(s.sessions).some((x) => x.date === today);
@@ -158,14 +159,14 @@ export function Today() {
       <section className="card">
         <div className="card-head">
           <h2>Food</h2>
-          <span className="muted">{GOAL_LABEL[p.goal]}</span>
+          <span className="muted">{(s.settings.trainCarbs ?? 0) > 0 ? (isTrainingDay(s, today) ? 'Training day' : 'Rest day') : GOAL_LABEL[p.goal]}</span>
         </div>
         <div className="food-summary">
-          <Ring value={totals.kcal} target={s.targets.kcal} />
+          <Ring value={totals.kcal} target={t.kcal} />
           <div className="grow">
-            <Bar label="Protein" value={totals.protein} target={s.targets.protein} unit="g" color="var(--protein)" />
-            <Bar label="Carbs" value={totals.carbs} target={s.targets.carbs} unit="g" color="var(--carbs)" />
-            <Bar label="Fat" value={totals.fat} target={s.targets.fat} unit="g" color="var(--fat)" />
+            <Bar label="Protein" value={totals.protein} target={t.protein} unit="g" color="var(--protein)" />
+            <Bar label="Carbs" value={totals.carbs} target={t.carbs} unit="g" color="var(--carbs)" />
+            <Bar label="Fat" value={totals.fat} target={t.fat} unit="g" color="var(--fat)" />
           </div>
         </div>
         <button className="btn block" onClick={() => nav.push({ name: 'addFood', date: today, meal: mealForNow() })}>

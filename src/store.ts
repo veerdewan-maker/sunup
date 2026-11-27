@@ -1,11 +1,11 @@
-import { get, set } from 'idb-keyval';
+import { del, get, keys, set } from 'idb-keyval';
 import { useSyncExternalStore } from 'react';
 import { getExercise } from './data/exercises';
 import { generatePlan, prescription } from './lib/plan';
 import { suggest } from './lib/progression';
-import { calcTargets } from './lib/targets';
+import { calcTargets, dayTargets } from './lib/targets';
 import { uid, ymd } from './lib/util';
-import type { AppState, Checkin, FoodEntry, FoodItem, Meal, MeasureLog, Profile, SavedMeal, Session, SessionExercise, Targets } from './types';
+import type { AppState, Checkin, FoodEntry, FoodItem, Meal, MeasureLog, PhotoMeta, Pose, Profile, SavedMeal, Session, SessionExercise, Targets } from './types';
 
 const KEY = 'sunup-state-v1';
 
@@ -24,6 +24,7 @@ export function emptyState(): AppState {
     weights: [],
     savedMeals: [],
     measurements: [],
+    photos: [],
     checkins: [],
     settings: { restTimer: true },
   };
@@ -402,6 +403,51 @@ export function deleteMeasurements(date: string) {
   update((s) => ({ ...s, measurements: s.measurements.filter((m) => m.date !== date) }));
 }
 
+// ---------- Training-day carbs ----------
+
+/** A day counts as training if a workout was done (or is under way) that day, unless the user said otherwise. */
+export function isTrainingDay(s: AppState, date: string): boolean {
+  const manual = s.settings.dayType?.[date];
+  if (manual != null) return manual;
+  return s.sessions.some((x) => x.finishedAt && x.date === date) || s.active?.date === date;
+}
+
+export function targetsFor(s: AppState, date: string): Targets {
+  return dayTargets(s.targets, s.settings.trainCarbs ?? 0, s.profile?.days ?? 3, isTrainingDay(s, date));
+}
+
+export function setDayType(date: string, training: boolean) {
+  update((s) => ({ ...s, settings: { ...s.settings, dayType: { ...s.settings.dayType, [date]: training } } }));
+}
+
+// ---------- Progress photos ----------
+
+const photoKey = (id: string) => `photo-${id}`;
+
+export async function addPhoto(date: string, pose: Pose, image: Blob): Promise<PhotoMeta> {
+  const meta: PhotoMeta = { id: uid(), date, pose };
+  await set(photoKey(meta.id), image);
+  update((s) => ({ ...s, photos: [...s.photos, meta].sort((a, b) => a.date.localeCompare(b.date)) }));
+  return meta;
+}
+
+export function getPhoto(id: string): Promise<Blob | undefined> {
+  return get(photoKey(id));
+}
+
+export async function deletePhoto(id: string) {
+  update((s) => ({ ...s, photos: s.photos.filter((p) => p.id !== id) }));
+  await del(photoKey(id)).catch(() => undefined);
+}
+
+async function deleteAllPhotos() {
+  try {
+    for (const k of await keys()) if (String(k).startsWith('photo-')) await del(k);
+  } catch {
+    /* ignore */
+  }
+}
+
 export function saveCheckin(c: Checkin, accept: boolean) {
   update((s) => ({
     ...s,
@@ -424,7 +470,8 @@ export function patchSettings(patch: Partial<AppState['settings']>) {
 }
 
 export function exportJson(): string {
-  return JSON.stringify({ app: 'sunup', exportedAt: new Date().toISOString(), state }, null, 1);
+  // Photos stay on this device: they would make the file huge, and they are private.
+  return JSON.stringify({ app: 'sunup', exportedAt: new Date().toISOString(), state: { ...state, photos: [] } }, null, 1);
 }
 
 /** Replaces everything with the contents of a backup file. Throws a readable error if the file is wrong. */
@@ -437,11 +484,12 @@ export function importJson(text: string) {
   }
   const candidate = (parsed as { state?: unknown })?.state;
   if (!isValidState(candidate)) throw new Error('That file is not a Sunup backup.');
-  commit({ ...emptyState(), ...candidate, active: null, settings: { ...emptyState().settings, ...candidate.settings } });
+  commit({ ...emptyState(), ...candidate, photos: state.photos, active: null, settings: { ...emptyState().settings, ...candidate.settings } });
   persistNow();
 }
 
 export function resetAll() {
+  void deleteAllPhotos();
   commit(emptyState());
   persistNow();
 }
