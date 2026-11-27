@@ -4,11 +4,11 @@ import { searchBuiltin } from '../data/foods';
 import { lookupBarcode, searchOnline } from '../lib/off';
 import { uid } from '../lib/util';
 import { useNav } from '../nav';
-import { addFood, deleteCustomFood, isFavourite, macrosFor, quickAdd, recentFoods, saveCustomFood, toggleFavourite, useStore } from '../store';
+import { addFood, deleteCustomFood, deleteSavedMeal, logSavedMeal, isFavourite, macrosFor, quickAdd, recentFoods, saveCustomFood, toggleFavourite, useStore } from '../store';
 import type { FoodItem, Meal } from '../types';
 import { MEALS } from './Eat';
 
-type TabId = 'search' | 'recent' | 'favourites' | 'mine' | 'quick';
+type TabId = 'search' | 'recent' | 'favourites' | 'meals' | 'mine' | 'quick';
 
 function perText(f: FoodItem): string {
   const base = f.unit === 'serving' ? (f.serving?.label ?? '1 serving') : `${f.baseQty} ${f.unit}`;
@@ -314,6 +314,7 @@ export function AddFood({ date, meal }: { date: string; meal: Meal }) {
             ['search', 'Search'],
             ['recent', 'Recent'],
             ['favourites', 'Favourites'],
+            ['meals', 'Meals'],
             ['mine', 'My foods'],
             ['quick', 'Quick add'],
           ] as [TabId, string][]
@@ -398,6 +399,53 @@ export function AddFood({ date, meal }: { date: string; meal: Meal }) {
             {s.favourites.map((f) => (
               <FoodRow key={f.id} food={f} onPick={setPicked} />
             ))}
+          </div>
+        </>
+      )}
+
+      {tab === 'meals' && (
+        <>
+          {s.savedMeals.length === 0 && <Empty>No saved meals yet. On the Eat screen, log a few foods in one meal and tap "Save as meal".</Empty>}
+          <div className="list">
+            {s.savedMeals.map((sm) => {
+              const kcal = Math.round(sm.items.reduce((a, it) => a + it.kcal, 0));
+              const protein = Math.round(sm.items.reduce((a, it) => a + it.protein, 0));
+              return (
+                <div key={sm.id} className="list-row col">
+                  <button
+                    className="list-row"
+                    onClick={() => {
+                      const n = logSavedMeal(sm.id, date, meal);
+                      toast(`Added ${n} item${n === 1 ? '' : 's'} to ${mealLabel.toLowerCase()}`);
+                      nav.back();
+                    }}
+                    aria-label={`Add ${sm.name} to ${mealLabel}`}
+                  >
+                    <div>
+                      <strong>{sm.name}</strong>
+                      <div className="muted small">
+                        {sm.items.map((it) => it.name).join(', ')}
+                      </div>
+                      <div className="muted small">
+                        {kcal} kcal · P {protein}
+                      </div>
+                    </div>
+                    <span className="muted">+</span>
+                  </button>
+                  <div className="btn-row">
+                    <button
+                      className="btn small ghost"
+                      onClick={() => {
+                        deleteSavedMeal(sm.id);
+                        toast('Meal deleted');
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </>
       )}

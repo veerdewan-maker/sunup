@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
-import { Empty, LineChart, NumField, toast } from '../components/ui';
+import { Chips, Empty, LineChart, NumField, Sheet, toast } from '../components/ui';
 import { getExercise } from '../data/exercises';
 import { allTimeBests, e1rmSeries } from '../lib/progression';
 import { buildCheckin, checkinDue, currentWeight, foodStreak, weeklyCounts, weeklyRate, weightTrend, workoutsInWeek } from '../lib/stats';
 import { addDays, fmtBody, fmtWeight, fromDisplay, niceDate, parseYmd, shortDate, toDisplay, ymd } from '../lib/util';
-import { deleteWeight, logWeight, saveCheckin, useStore } from '../store';
+import { deleteMeasurements, deleteWeight, logMeasurements, logWeight, saveCheckin, useStore } from '../store';
+import type { MeasureKey } from '../types';
 
 function CheckinCard() {
   const s = useStore();
@@ -67,6 +68,128 @@ function CheckinCard() {
             Done
           </button>
         </>
+      )}
+    </section>
+  );
+}
+
+const MEASURES: { key: MeasureKey; label: string }[] = [
+  { key: 'waist', label: 'Waist' },
+  { key: 'chest', label: 'Chest' },
+  { key: 'hips', label: 'Hips' },
+  { key: 'arm', label: 'Arm' },
+  { key: 'thigh', label: 'Thigh' },
+];
+const CM_PER_IN = 2.54;
+
+function MeasurementsCard() {
+  const s = useStore();
+  const imperial = s.profile!.units === 'lb';
+  const unit = imperial ? 'in' : 'cm';
+  const show = (cm: number) => Number((imperial ? cm / CM_PER_IN : cm).toFixed(1));
+  const today = ymd();
+  const logs = s.measurements;
+  const todays = logs.find((m) => m.date === today);
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState<Partial<Record<MeasureKey, number | null>>>({});
+  const tracked = MEASURES.filter((m) => logs.some((l) => l.cm[m.key] != null));
+  const [pick, setPick] = useState<MeasureKey | null>(null);
+  const chartKey = pick && tracked.some((t) => t.key === pick) ? pick : tracked[0]?.key;
+  const points = chartKey ? logs.filter((l) => l.cm[chartKey] != null).map((l) => ({ date: l.date, value: show(l.cm[chartKey]!) })) : [];
+
+  const startEdit = () => {
+    const base = todays?.cm ?? {};
+    setDraft(Object.fromEntries(MEASURES.map((m) => [m.key, base[m.key] != null ? show(base[m.key]!) : null])));
+    setOpen(true);
+  };
+
+  return (
+    <section className="card">
+      <div className="card-head">
+        <h2>Measurements</h2>
+        <span className="muted">{unit}</span>
+      </div>
+      {tracked.length === 0 ? (
+        <Empty>The scale doesn't tell the whole story. Measure your waist, arms and more every couple of weeks to see where you're changing.</Empty>
+      ) : (
+        <>
+          {tracked.map((m) => {
+            const vals = logs.filter((l) => l.cm[m.key] != null);
+            const first = vals[0].cm[m.key]!;
+            const last = vals[vals.length - 1].cm[m.key]!;
+            const diff = show(last) - show(first);
+            return (
+              <div key={m.key} className="food-row inline">
+                <span>{m.label}</span>
+                <span>
+                  {show(last)} {unit}
+                  {vals.length > 1 && (
+                    <span className="muted small">
+                      {' '}
+                      ({diff > 0 ? '+' : ''}
+                      {Number(diff.toFixed(1))} since {shortDate(vals[0].date)})
+                    </span>
+                  )}
+                </span>
+              </div>
+            );
+          })}
+          {tracked.length > 1 && (
+            <Chips label="Measurement to chart" value={chartKey!} onChange={setPick} options={tracked.map((t) => ({ value: t.key, label: t.label }))} />
+          )}
+          {points.length > 1 && <LineChart fmt={(v) => v.toFixed(1)} series={[{ points, color: 'var(--accent)', dots: true }]} />}
+        </>
+      )}
+      <div className="btn-row">
+        <button className="btn small primary" onClick={startEdit}>
+          {todays ? "Edit today's" : 'Log measurements'}
+        </button>
+        {todays && (
+          <button
+            className="btn small ghost"
+            onClick={() => {
+              deleteMeasurements(today);
+              toast("Today's measurements deleted");
+            }}
+          >
+            Delete today's
+          </button>
+        )}
+      </div>
+      {open && (
+        <Sheet title="Measurements" onClose={() => setOpen(false)}>
+          <p className="muted small">Measure in the morning, tape snug but not tight. Fill in any you like and leave the rest blank.</p>
+          <div className="row2">
+            {MEASURES.map((m) => (
+              <NumField
+                key={m.key}
+                label={m.label}
+                value={draft[m.key] ?? null}
+                onChange={(v) => setDraft({ ...draft, [m.key]: v })}
+                suffix={unit}
+              />
+            ))}
+          </div>
+          <button
+            className="btn primary block"
+            onClick={() => {
+              const cm = Object.fromEntries(
+                Object.entries(draft)
+                  .filter(([, v]) => v != null && v > 0)
+                  .map(([k, v]) => [k, imperial ? v! * CM_PER_IN : v!]),
+              );
+              if (Object.values(cm).some((v) => v < 10 || v > 250)) {
+                toast('One of those looks off. Please check it.');
+                return;
+              }
+              logMeasurements(today, cm);
+              setOpen(false);
+              toast('Measurements saved');
+            }}
+          >
+            Save
+          </button>
+        </Sheet>
       )}
     </section>
   );
@@ -190,6 +313,8 @@ export function Progress() {
           </>
         )}
       </section>
+
+      <MeasurementsCard />
 
       <section className="card">
         <div className="card-head">

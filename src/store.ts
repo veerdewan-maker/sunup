@@ -5,7 +5,7 @@ import { generatePlan, prescription } from './lib/plan';
 import { suggest } from './lib/progression';
 import { calcTargets } from './lib/targets';
 import { uid, ymd } from './lib/util';
-import type { AppState, Checkin, FoodEntry, FoodItem, Meal, Profile, Session, SessionExercise, Targets } from './types';
+import type { AppState, Checkin, FoodEntry, FoodItem, Meal, MeasureLog, Profile, SavedMeal, Session, SessionExercise, Targets } from './types';
 
 const KEY = 'sunup-state-v1';
 
@@ -22,6 +22,8 @@ export function emptyState(): AppState {
     favourites: [],
     water: {},
     weights: [],
+    savedMeals: [],
+    measurements: [],
     checkins: [],
     settings: { restTimer: true },
   };
@@ -344,6 +346,32 @@ export function recentFoods(s: AppState, limit = 30): FoodItem[] {
   return out;
 }
 
+// ---------- Saved meals ----------
+
+/** Saves the foods logged in one meal on one day under a name. Returns the new meal, or null if there was nothing to save. */
+export function saveMeal(name: string, date: string, meal: Meal): SavedMeal | null {
+  const src = state.foodEntries.filter((e) => e.date === date && e.meal === meal);
+  if (!src.length) return null;
+  const saved: SavedMeal = {
+    id: uid(),
+    name: name.trim() || 'My meal',
+    items: src.map(({ id: _id, date: _d, meal: _m, ...rest }) => rest),
+  };
+  update((s) => ({ ...s, savedMeals: [...s.savedMeals, saved] }));
+  return saved;
+}
+
+export function logSavedMeal(id: string, date: string, meal: Meal): number {
+  const sm = state.savedMeals.find((m) => m.id === id);
+  if (!sm) return 0;
+  update((s) => ({ ...s, foodEntries: [...s.foodEntries, ...sm.items.map((it) => ({ ...it, id: uid(), date, meal }))] }));
+  return sm.items.length;
+}
+
+export function deleteSavedMeal(id: string) {
+  update((s) => ({ ...s, savedMeals: s.savedMeals.filter((m) => m.id !== id) }));
+}
+
 export function addWater(date: string, ml: number) {
   update((s) => ({ ...s, water: { ...s.water, [date]: Math.max(0, (s.water[date] ?? 0) + ml) } }));
 }
@@ -359,6 +387,19 @@ export function logWeight(date: string, kg: number) {
 
 export function deleteWeight(date: string) {
   update((s) => ({ ...s, weights: s.weights.filter((w) => w.date !== date) }));
+}
+
+export function logMeasurements(date: string, cm: MeasureLog['cm']) {
+  const clean = Object.fromEntries(Object.entries(cm).filter(([, v]) => v != null && v > 0)) as MeasureLog['cm'];
+  update((s) => {
+    const rest = s.measurements.filter((m) => m.date !== date);
+    const next = Object.keys(clean).length ? [...rest, { date, cm: clean }] : rest;
+    return { ...s, measurements: next.sort((a, b) => a.date.localeCompare(b.date)) };
+  });
+}
+
+export function deleteMeasurements(date: string) {
+  update((s) => ({ ...s, measurements: s.measurements.filter((m) => m.date !== date) }));
 }
 
 export function saveCheckin(c: Checkin, accept: boolean) {

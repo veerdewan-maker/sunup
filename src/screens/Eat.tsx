@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { Bar, Ring, toast } from '../components/ui';
+import { Bar, Ring, Sheet, toast } from '../components/ui';
 import { totalsFor } from '../lib/stats';
 import { addDays, niceDate, ymd } from '../lib/util';
 import { useNav } from '../nav';
-import { copyMeal, deleteFoodEntry, useStore } from '../store';
+import { copyMeal, deleteFoodEntry, saveMeal, useStore } from '../store';
 import type { Meal } from '../types';
 import { WaterCard } from './Today';
 
@@ -19,6 +19,8 @@ export function Eat() {
   const nav = useNav();
   const [date, setDate] = useState(ymd());
   const [editing, setEditing] = useState<string | null>(null);
+  const [saving, setSaving] = useState<Meal | null>(null);
+  const [mealName, setMealName] = useState('');
   const totals = totalsFor(s.foodEntries, date);
   const yesterday = addDays(date, -1);
 
@@ -99,6 +101,17 @@ export function Eat() {
               <button className="btn small" onClick={() => nav.push({ name: 'addFood', date, meal: m.id })} aria-label={`Add food to ${m.label}`}>
                 + Add food
               </button>
+              {entries.length > 1 && (
+                <button
+                  className="btn small ghost"
+                  onClick={() => {
+                    setMealName('');
+                    setSaving(m.id);
+                  }}
+                >
+                  Save as meal
+                </button>
+              )}
               {canCopy && (
                 <button
                   className="btn small ghost"
@@ -116,6 +129,33 @@ export function Eat() {
       })}
 
       <WaterCard date={date} />
+
+      {saving && (
+        <Sheet title="Save as a meal" onClose={() => setSaving(null)}>
+          <p className="muted small">
+            Saves these {s.foodEntries.filter((e) => e.date === date && e.meal === saving).length} foods together, so next time you can add them all from the Meals tab in one tap.
+          </p>
+          <form
+            className="btn-col"
+            onSubmit={(ev) => {
+              ev.preventDefault();
+              const sm = saveMeal(mealName, date, saving);
+              setSaving(null);
+              if (sm) toast(`Saved "${sm.name}"`);
+            }}
+          >
+            <label className="field">
+              <span>Name</span>
+              <div className="field-input">
+                <input value={mealName} onChange={(ev) => setMealName(ev.target.value)} placeholder="Usual breakfast" aria-label="Meal name" autoFocus />
+              </div>
+            </label>
+            <button className="btn primary block" type="submit">
+              Save meal
+            </button>
+          </form>
+        </Sheet>
+      )}
     </div>
   );
 }
