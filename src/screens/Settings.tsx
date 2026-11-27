@@ -1,12 +1,13 @@
 import { useRef, useState } from 'react';
 import { Chips, NumField, Page, Sheet, toast } from '../components/ui';
 import { EQUIPMENT } from '../data/exercises';
+import { SEASON_LABEL, SPORTS, getSport, recommendedDays } from '../data/sports';
 import { GOAL_LABEL, calcTargets, dayTargets } from '../lib/targets';
 import { currentWeight } from '../lib/stats';
 import { fromDisplay, shortDate, toDisplay, ymd } from '../lib/util';
 import { useNav } from '../nav';
 import { exportJson, importJson, patchSettings, resetAll, setTargets, updateProfile, useStore } from '../store';
-import type { Equip, EquipmentPreset, Goal, Targets, Units } from '../types';
+import type { Equip, EquipmentPreset, Goal, Season, Sport, Targets, Units } from '../types';
 
 export function Settings() {
   const s = useStore();
@@ -16,13 +17,18 @@ export function Settings() {
   const [t, setT] = useState<Targets>(s.targets);
   const [goal, setGoal] = useState<Goal>(p.goal);
   const [days, setDays] = useState(p.days);
+  const [sport, setSport] = useState<Sport>(p.sport ?? 'none');
+  const [sportSessions, setSportSessions] = useState(p.sportSessions || 4);
+  const [season, setSeason] = useState<Season>(p.season ?? 'pre');
+  const sportInfo = getSport(sport);
   const [sessionMin, setSessionMin] = useState(p.sessionMin);
   const [preset, setPreset] = useState<EquipmentPreset>(p.preset);
   const [equipment, setEquipment] = useState<Equip[]>(p.equipment);
   const [goalWeight, setGoalWeight] = useState<number | null>(p.targetWeightKg != null ? Number(toDisplay(p.targetWeightKg, p.units).toFixed(1)) : null);
   const [confirm, setConfirm] = useState<null | 'plan' | 'reset' | { importText: string }>(null);
 
-  const planChanged = goal !== p.goal || days !== p.days || sessionMin !== p.sessionMin || preset !== p.preset || (preset === 'home' && equipment.join() !== p.equipment.join());
+  const sportChanged = sport !== (p.sport ?? 'none') || (sport !== 'none' && (sportSessions !== p.sportSessions || season !== (p.season ?? 'pre')));
+  const planChanged = sportChanged || goal !== p.goal || days !== p.days || sessionMin !== p.sessionMin || preset !== p.preset || (preset === 'home' && equipment.join() !== p.equipment.join());
   const targetsChanged = (Object.keys(t) as (keyof Targets)[]).some((k) => t[k] !== s.targets[k]);
   const macroKcal = t.protein * 4 + t.carbs * 4 + t.fat * 9;
 
@@ -94,7 +100,25 @@ export function Settings() {
         <h2>Goal and plan</h2>
         <div className="label">Goal</div>
         <Chips cols={2} label="Goal" value={goal} onChange={setGoal} options={(Object.keys(GOAL_LABEL) as Goal[]).map((g) => ({ value: g, label: GOAL_LABEL[g] }))} />
-        <div className="label">Days per week</div>
+        <div className="label">Sport</div>
+        <select className="select" value={sport} onChange={(e) => setSport(e.target.value as Sport)} aria-label="Sport">
+          <option value="none">No sport, just the gym</option>
+          {SPORTS.map((sp) => (
+            <option key={sp.id} value={sp.id}>
+              {sp.label}
+            </option>
+          ))}
+        </select>
+        {sportInfo && (
+          <>
+            <div className="label">Practices and games per week</div>
+            <Chips cols={5} label="Practices and games per week" value={sportSessions} onChange={setSportSessions} options={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((d) => ({ value: d, label: d === 10 ? '10+' : String(d) }))} />
+            <div className="label">Season</div>
+            <Chips cols={3} label="Season" value={season} onChange={setSeason} options={(['off', 'pre', 'in'] as Season[]).map((x) => ({ value: x, label: SEASON_LABEL[x] }))} />
+            <p className="muted small">Suggested: {recommendedDays(sportSessions, season)} gym days a week around your sport.</p>
+          </>
+        )}
+        <div className="label">{sportInfo ? 'Gym days per week' : 'Days per week'}</div>
         <Chips cols={5} label="Days per week" value={days} onChange={setDays} options={[2, 3, 4, 5, 6].map((d) => ({ value: d, label: String(d) }))} />
         <div className="label">Time per workout</div>
         <Chips cols={4} label="Time per workout" value={sessionMin} onChange={setSessionMin} options={[30, 45, 60, 90].map((d) => ({ value: d, label: `${d} min` }))} />
@@ -221,7 +245,7 @@ export function Settings() {
             <button
               className="btn primary block"
               onClick={() => {
-                updateProfile({ goal, days, sessionMin, preset, equipment }, { plan: true, targets: true });
+                updateProfile({ goal, days, sessionMin, preset, equipment, sport, sportSessions: sport === 'none' ? 0 : sportSessions, season }, { plan: true, targets: true });
                 setConfirm(null);
                 toast('New plan ready');
                 nav.back();

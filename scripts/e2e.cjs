@@ -70,6 +70,9 @@ let dbgPage;
   await shot('01-onboarding-goal');
   await page.getByRole('button', { name: /Build muscle/ }).click();
   await page.getByRole('button', { name: 'Continue' }).click();
+  check('Continue is disabled until a sport is picked', await page.getByRole('button', { name: 'Continue' }).isDisabled());
+  await page.getByRole('radio', { name: 'No sport, just the gym' }).click();
+  await page.getByRole('button', { name: 'Continue' }).click();
   check('Continue is disabled with empty body stats', await page.getByRole('button', { name: 'Continue' }).isDisabled());
   await page.getByLabel('Age').fill('25');
   await page.getByLabel('Height').fill('180');
@@ -260,6 +263,8 @@ let dbgPage;
   check('erase returns to setup', true);
   // Set up again quickly, then restore.
   await page.getByRole('button', { name: /Lose fat/ }).click();
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByRole('radio', { name: 'No sport, just the gym' }).click();
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByLabel('Age').fill('30');
   await page.getByLabel('Height').fill('170');

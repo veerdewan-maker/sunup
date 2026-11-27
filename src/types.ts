@@ -1,4 +1,4 @@
-export type Goal = 'muscle' | 'fat' | 'strength' | 'general';
+export type Goal = 'sport' | 'muscle' | 'fat' | 'strength' | 'general';
 export type Sex = 'male' | 'female';
 export type Units = 'kg' | 'lb';
 export type Experience = 'new' | 'lt1' | '1to3' | '3plus';
@@ -32,7 +32,30 @@ export type Pattern =
   | 'hamIso'
   | 'glute'
   | 'calves'
-  | 'core';
+  | 'core'
+  | 'plyo'
+  | 'rotate'
+  | 'shoulder'
+  | 'mobility';
+
+export type Sport =
+  | 'none'
+  | 'diving'
+  | 'swimming'
+  | 'soccer'
+  | 'basketball'
+  | 'volleyball'
+  | 'football'
+  | 'track'
+  | 'running'
+  | 'tennis'
+  | 'baseball'
+  | 'gymnastics'
+  | 'hockey'
+  | 'wrestling'
+  | 'cycling';
+
+export type Season = 'off' | 'pre' | 'in';
 
 export interface Exercise {
   id: string;
@@ -62,6 +85,11 @@ export interface Profile {
   equipment: Equip[];
   units: Units;
   createdAt: string;
+  /** The sport the plan is built around ('none' or missing = general gym plan). */
+  sport?: Sport;
+  /** Practices plus competitions per week. */
+  sportSessions?: number;
+  season?: Season;
 }
 
 export interface Targets {

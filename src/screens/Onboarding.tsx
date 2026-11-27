@@ -1,13 +1,15 @@
 import { useMemo, useState } from 'react';
 import { Chips, NumField } from '../components/ui';
 import { EQUIPMENT, getExercise } from '../data/exercises';
+import { SEASON_LABEL, SPORTS, getSport, recommendedDays } from '../data/sports';
 import { generatePlan } from '../lib/plan';
 import { ACTIVITY_LABEL, GOAL_LABEL, calcTargets } from '../lib/targets';
 import { fromDisplay } from '../lib/util';
 import { completeOnboarding } from '../store';
-import type { Equip, EquipmentPreset, Experience, Goal, Profile, Sex, Units } from '../types';
+import type { Equip, EquipmentPreset, Experience, Goal, Profile, Season, Sex, Sport, Units } from '../types';
 
 const GOALS: { id: Goal; desc: string }[] = [
+  { id: 'sport', desc: 'Get faster, more powerful and harder to injure, with training built around what your sport needs.' },
   { id: 'muscle', desc: 'Gain size with 8 to 12 rep training and a small calorie surplus.' },
   { id: 'fat', desc: 'Drop body fat while keeping your strength, with a calorie deficit.' },
   { id: 'strength', desc: 'Lift heavier with low rep compound lifts.' },
@@ -34,7 +36,11 @@ export function Onboarding() {
   const [target, setTarget] = useState<number | null>(null);
   const [activity, setActivity] = useState(0);
   const [experience, setExperience] = useState<Experience>('new');
+  const [sport, setSport] = useState<Sport | null>(null);
+  const [sportSessions, setSportSessions] = useState(4);
+  const [season, setSeason] = useState<Season>('pre');
   const [days, setDays] = useState(3);
+  const [daysTouched, setDaysTouched] = useState(false);
   const [sessionMin, setSessionMin] = useState(60);
   const [preset, setPreset] = useState<EquipmentPreset>('gym');
   const [equipment, setEquipment] = useState<Equip[]>(['db', 'bench']);
@@ -71,18 +77,25 @@ export function Onboarding() {
       equipment,
       units,
       createdAt: new Date().toISOString(),
+      sport: sport ?? 'none',
+      sportSessions: sport && sport !== 'none' ? sportSessions : 0,
+      season,
     };
-  }, [goal, aboutError, sex, age, height, weight, target, activity, experience, days, sessionMin, preset, equipment, units]);
+  }, [goal, aboutError, sex, age, height, weight, target, activity, experience, days, sessionMin, preset, equipment, units, sport, sportSessions, season]);
+
+  const sportInfo = getSport(sport ?? undefined);
+  const recDays = sportInfo ? recommendedDays(sportSessions, season) : null;
+  const STEPS = 7;
 
   const preview = useMemo(() => (profile ? { targets: calcTargets(profile), plan: generatePlan(profile) } : null), [profile]);
 
-  const canNext = step === 0 ? goal != null : step === 1 ? !aboutError : true;
-  const last = step === 5;
+  const canNext = step === 0 ? goal != null : step === 1 ? sport != null : step === 2 ? !aboutError : true;
+  const last = step === STEPS - 1;
 
   return (
     <div className="onboarding">
-      <div className="ob-progress" aria-label={`Step ${step + 1} of 6`}>
-        {[0, 1, 2, 3, 4, 5].map((i) => (
+      <div className="ob-progress" aria-label={`Step ${step + 1} of ${STEPS}`}>
+        {Array.from({ length: STEPS }, (_, i) => i).map((i) => (
           <span key={i} className={i <= step ? 'on' : ''} />
         ))}
       </div>
@@ -104,6 +117,51 @@ export function Onboarding() {
         )}
 
         {step === 1 && (
+          <>
+            <h1>What sport do you play?</h1>
+            <p className="muted">Your gym plan is built around what your sport asks of your body.</p>
+            <div className="chips wrap" role="radiogroup" aria-label="Sport">
+              {[{ id: 'none' as Sport, label: 'No sport, just the gym' }, ...SPORTS].map((sp) => (
+                <button
+                  key={sp.id}
+                  role="radio"
+                  aria-checked={sport === sp.id}
+                  className={'chip' + (sport === sp.id ? ' on' : '')}
+                  onClick={() => {
+                    setSport(sp.id);
+                    if (sp.id !== 'none' && goal == null) setGoal('sport');
+                  }}
+                >
+                  {sp.label}
+                </button>
+              ))}
+            </div>
+            {sportInfo && (
+              <>
+                <p className="hint">{sportInfo.demands}</p>
+                <div className="label">Practices and games per week</div>
+                <Chips cols={5} label="Practices and games per week" value={sportSessions} onChange={setSportSessions} options={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((d) => ({ value: d, label: d === 10 ? '10+' : String(d) }))} />
+                <div className="label">Where are you in your season?</div>
+                <Chips
+                  cols={3}
+                  label="Season"
+                  value={season}
+                  onChange={setSeason}
+                  options={(['off', 'pre', 'in'] as Season[]).map((x) => ({ value: x, label: SEASON_LABEL[x] }))}
+                />
+                <p className="muted small">
+                  {season === 'in'
+                    ? 'In season, the gym keeps your strength with less volume so you stay fresh for competition.'
+                    : season === 'pre'
+                      ? 'Pre-season turns strength into speed and power for the competition season.'
+                      : 'Off-season is the time to build the most strength and fix weak spots.'}
+                </p>
+              </>
+            )}
+          </>
+        )}
+
+        {step === 2 && (
           <>
             <h1>About you</h1>
             <p className="muted">Used to estimate how many calories you burn in a day.</p>
@@ -132,10 +190,10 @@ export function Onboarding() {
           </>
         )}
 
-        {step === 2 && (
+        {step === 3 && (
           <>
             <h1>Activity and experience</h1>
-            <div className="label">Outside the gym, I am…</div>
+            <div className="label">{sportInfo ? 'Outside practice and the gym, I am…' : 'Outside the gym, I am…'}</div>
             <div className="stack">
               {ACTIVITY_LABEL.map((l, i) => (
                 <button key={i} className={'option slim' + (activity === i ? ' on' : '')} onClick={() => setActivity(i)} aria-pressed={activity === i}>
@@ -159,18 +217,32 @@ export function Onboarding() {
           </>
         )}
 
-        {step === 3 && (
+        {step === 4 && (
           <>
             <h1>Your schedule</h1>
-            <div className="label">Days per week</div>
-            <Chips cols={5} label="Days per week" value={days} onChange={setDays} options={[2, 3, 4, 5, 6].map((d) => ({ value: d, label: String(d) }))} />
+            <div className="label">{sportInfo ? 'Gym days per week' : 'Days per week'}</div>
+            <Chips
+              cols={5}
+              label="Days per week"
+              value={days}
+              onChange={(d) => {
+                setDays(d);
+                setDaysTouched(true);
+              }}
+              options={[2, 3, 4, 5, 6].map((d) => ({ value: d, label: String(d) }))}
+            />
+            {sportInfo && recDays != null && (
+              <p className="hint">
+                With {sportSessions} {sportInfo.label.toLowerCase()} session{sportSessions === 1 ? '' : 's'} a week {season === 'in' ? 'in season' : season === 'pre' ? 'in pre-season' : 'in the off-season'}, {recDays} gym days is about right. More can leave you too tired for practice.
+              </p>
+            )}
             <div className="label">Time per workout</div>
             <Chips cols={4} label="Time per workout" value={sessionMin} onChange={setSessionMin} options={[30, 45, 60, 90].map((d) => ({ value: d, label: `${d} min` }))} />
             <p className="muted">Pick what you can keep up every week. Showing up beats the perfect plan.</p>
           </>
         )}
 
-        {step === 4 && (
+        {step === 5 && (
           <>
             <h1>What equipment do you have?</h1>
             <div className="stack">
@@ -204,7 +276,7 @@ export function Onboarding() {
           </>
         )}
 
-        {step === 5 && preview && profile && (
+        {step === 6 && preview && profile && (
           <>
             <h1>Your plan is ready</h1>
             <div className="card">
@@ -219,6 +291,16 @@ export function Onboarding() {
                 <p className="hint">Because you're under 18, the app won't set an aggressive calorie cut. Check big diet changes with a parent or doctor.</p>
               )}
             </div>
+            {sportInfo && (
+              <div className="card">
+                <div className="label">Built for {sportInfo.label.toLowerCase()}</div>
+                <ul className="focus-list">
+                  {sportInfo.focus.map((f) => (
+                    <li key={f}>{f}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <div className="card">
               <div className="label">{preview.plan.split}</div>
               {preview.plan.days.map((d) => (
@@ -245,7 +327,10 @@ export function Onboarding() {
           onClick={() => {
             if (last) {
               if (profile) completeOnboarding(profile);
-            } else setStep(step + 1);
+            } else {
+              if (step === 1 && recDays != null && !daysTouched) setDays(recDays);
+              setStep(step + 1);
+            }
           }}
         >
           {last ? 'Start' : 'Continue'}
