@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Empty, Page, Sheet, toast } from '../components/ui';
 import { EXERCISES, PATTERN_LABEL, getExercise } from '../data/exercises';
+import { SEASON_LABEL, getSport } from '../data/sports';
 import { alternatives, available, equipmentFor } from '../lib/plan';
 import { doneSets, sessionVolume } from '../lib/progression';
 import { finished, nextPlanDayIndex, workoutsInWeek } from '../lib/stats';
@@ -42,6 +43,26 @@ export function Train() {
           {week} of {s.profile!.days} this week
         </span>
       </header>
+
+      {(() => {
+        const sp = getSport(s.profile!.sport);
+        if (!sp) return null;
+        return (
+          <section className="card tip">
+            <div className="card-head">
+              <h2>Built for {sp.label.toLowerCase()}</h2>
+              <span className="pill">{SEASON_LABEL[s.profile!.season ?? 'pre']}</span>
+            </div>
+            <p className="muted small">{sp.demands}</p>
+            <ul className="focus-list">
+              {sp.focus.map((f) => (
+                <li key={f}>{f}</li>
+              ))}
+            </ul>
+            <p className="muted small">Do jumps first while you're fresh, and stop a set early if they slow down. Skip leg-heavy gym days right before a competition.</p>
+          </section>
+        );
+      })()}
 
       {plan?.days.map((d, i) => {
         const last = done.find((x) => x.planDayId === d.id);

@@ -142,3 +142,59 @@ describe('training-day carbs', () => {
     expect(dayTargets(t, 50, 7, false).carbs).toBe(300);
   });
 });
+
+describe('sport plans', () => {
+  const athlete: Profile = { ...base, goal: 'sport', sport: 'diving', sportSessions: 6, season: 'pre', days: 3 };
+  it('every preferred exercise in every sport exists', async () => {
+    const { SPORTS } = await import('../data/sports');
+    const missing = SPORTS.flatMap((sp) => sp.days.flatMap((d) => d.slots.flatMap((sl) => (sl.ids ?? []).filter((id) => getExercise(id).name === 'Unknown exercise'))));
+    expect(missing).toEqual([]);
+  });
+  it('builds a diving plan with jumps, body-shape core, shoulder care and flexibility', () => {
+    const plan = generatePlan(athlete);
+    expect(plan.split).toMatch(/Diving/);
+    expect(plan.days).toHaveLength(3);
+    const ids = plan.days.flatMap((d) => d.exercises.map((e) => e.exId));
+    expect(ids).toContain('cmj-arm-swing');
+    expect(ids).toContain('hollow-hold');
+    expect(ids).toContain('pike-stretch');
+    const patterns = new Set(ids.map((id) => getExercise(id).pattern));
+    for (const p of ['plyo', 'core', 'shoulder', 'mobility', 'rotate'] as const) expect(patterns.has(p)).toBe(true);
+    // Each day opens with a jump while fresh.
+    for (const d of plan.days) expect(getExercise(d.exercises[0].exId).pattern).toBe('plyo');
+  });
+  it('works for every sport, schedule and equipment without repeats in a day', async () => {
+    const { SPORTS } = await import('../data/sports');
+    for (const sp of SPORTS)
+      for (const preset of ['gym', 'dumbbells', 'bodyweight'] as const)
+        for (const days of [2, 3, 4, 6]) {
+          const plan = generatePlan({ ...athlete, sport: sp.id, preset, days, sessionMin: 45 });
+          expect(plan.days).toHaveLength(days);
+          for (const d of plan.days) {
+            expect(d.exercises.length).toBeGreaterThanOrEqual(4);
+            expect(new Set(d.exercises.map((e) => e.exId)).size).toBe(d.exercises.length);
+            for (const e of d.exercises) expect(available(getExercise(e.exId), equipmentFor({ preset, equipment: [] }))).toBe(true);
+          }
+        }
+  });
+  it('keeps jumps low-rep and cuts volume in season', () => {
+    const pre = generatePlan(athlete);
+    const inSeason = generatePlan({ ...athlete, season: 'in' });
+    const jump = pre.days[0].exercises[0];
+    expect(jump.repMax).toBeLessThanOrEqual(5);
+    const sets = (pl: typeof pre) => pl.days.flatMap((d) => d.exercises).reduce((n, e) => n + e.sets, 0);
+    expect(sets(inSeason)).toBeLessThan(sets(pre));
+  });
+  it('adds calories for practices', () => {
+    const none = calcTargets({ ...athlete, sportSessions: 0 });
+    const busy = calcTargets(athlete);
+    expect(busy.kcal - none.kcal).toBeGreaterThan(250);
+    expect(calcTargets({ ...base, goal: 'sport' }).kcal).toBeGreaterThan(0);
+  });
+  it('recommends fewer gym days in season and in busy weeks', async () => {
+    const { recommendedDays } = await import('../data/sports');
+    expect(recommendedDays(6, 'in')).toBe(2);
+    expect(recommendedDays(2, 'off')).toBe(4);
+    expect(recommendedDays(4, 'pre')).toBe(3);
+  });
+});

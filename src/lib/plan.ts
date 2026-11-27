@@ -1,5 +1,6 @@
 import { ALL_EQUIP, EXERCISES, getExercise } from '../data/exercises';
-import type { Equip, Exercise, Goal, Pattern, Plan, PlanDay, PlanExercise, Profile } from '../types';
+import { getSport } from '../data/sports';
+import type { Equip, Exercise, Goal, Pattern, Plan, PlanDay, PlanExercise, Profile, Season } from '../types';
 
 type Slot = [Pattern, number];
 
@@ -52,6 +53,9 @@ const FALLBACK: Partial<Record<Pattern, Pattern>> = {
   glute: 'hinge',
   biceps: 'vpull',
   triceps: 'hpush',
+  shoulder: 'rearDelt',
+  rotate: 'core',
+  mobility: 'core',
 };
 
 export function equipmentFor(p: Pick<Profile, 'preset' | 'equipment'>): Equip[] {
@@ -82,11 +86,30 @@ function pick(pattern: Pattern, variant: number, have: Equip[], used: Set<string
   return opts[variant % opts.length];
 }
 
-export function prescription(ex: Exercise, goal: Goal, index: number, beginner: boolean): Omit<PlanExercise, 'exId'> {
-  if (ex.timed) return { sets: 3, repMin: 30, repMax: 60, restSec: 45 };
+export function prescription(ex: Exercise, goal: Goal, index: number, beginner: boolean, season?: Season): Omit<PlanExercise, 'exId'> {
+  const inSeason = season === 'in';
+  if (ex.pattern === 'mobility') return ex.timed ? { sets: 2, repMin: 30, repMax: 60, restSec: 20 } : { sets: 2, repMin: 10, repMax: 15, restSec: 30 };
+  if (ex.pattern === 'plyo') {
+    // Jumps are about quality: few reps, full rest, stop before you slow down.
+    const sets = inSeason || beginner ? 2 : 3;
+    if (ex.id === 'pogo-hops') return { sets, repMin: 15, repMax: 25, restSec: 60 };
+    if (ex.id === 'sprint-start') return { sets: sets + 1, repMin: 1, repMax: 1, restSec: 90 };
+    return { sets, repMin: 3, repMax: 5, restSec: 90 };
+  }
+  if (ex.pattern === 'shoulder') return { sets: 2, repMin: 12, repMax: 15, restSec: 45 };
+  if (ex.pattern === 'rotate') return { sets: inSeason ? 2 : 3, repMin: 6, repMax: 10, restSec: 60 };
+  if (ex.timed) return { sets: inSeason ? 2 : 3, repMin: 20, repMax: 45, restSec: 45 };
   let p: Omit<PlanExercise, 'exId'>;
-  const main = ex.compound && index < 2;
-  if (goal === 'strength') {
+  // Sport days open with a jump, so the first two lifts sit one slot later.
+  const main = ex.compound && index < (goal === 'sport' ? 3 : 2);
+  if (goal === 'sport') {
+    // Strength that carries over to speed and power, without the soreness of bodybuilding volume.
+    p = main
+      ? { sets: 3, repMin: 4, repMax: 6, restSec: 150 }
+      : ex.compound
+        ? { sets: 3, repMin: 6, repMax: 8, restSec: 90 }
+        : { sets: 2, repMin: 8, repMax: 12, restSec: 60 };
+  } else if (goal === 'strength') {
     p = main
       ? { sets: 4, repMin: 3, repMax: 6, restSec: 180 }
       : ex.compound
@@ -112,6 +135,8 @@ export function prescription(ex: Exercise, goal: Goal, index: number, beginner: 
     p = { ...p, repMin: Math.max(p.repMin, 8), repMax: Math.max(p.repMax, 15), restSec: Math.min(p.restSec, 90) };
   }
   if (beginner && p.sets > 3) p = { ...p, sets: 3 };
+  // In season the sport itself is the hard training, so the gym keeps strength with less volume.
+  if (inSeason) p = { ...p, sets: Math.min(p.sets, ex.compound ? 3 : 2) };
   return p;
 }
 
@@ -122,7 +147,49 @@ export function exerciseCount(sessionMin: number): number {
   return 7;
 }
 
+function generateSportPlan(p: Profile): Plan | null {
+  const sport = getSport(p.sport);
+  if (!sport) return null;
+  const have = equipmentFor(p);
+  const count = exerciseCount(p.sessionMin);
+  const beginner = p.experience === 'new';
+  const n = Math.min(6, Math.max(2, p.days));
+  const days: PlanDay[] = Array.from({ length: n }, (_, i) => {
+    const tpl = sport.days[i % sport.days.length];
+    const round = Math.floor(i / sport.days.length);
+    const used = new Set<string>();
+    const exercises: PlanExercise[] = [];
+    const add = (ex: Exercise) => {
+      used.add(ex.id);
+      exercises.push({ exId: ex.id, ...prescription(ex, p.goal, exercises.length, beginner, p.season) });
+    };
+    // Mobility holds are short, so they finish the session on top of the main exercises.
+    for (const slot of tpl.slots.filter((x) => x.p !== 'mobility')) {
+      if (exercises.length >= count) break;
+      const preferred = (slot.ids ?? []).map(getExercise).filter((e) => e.name !== 'Unknown exercise' && available(e, have) && !used.has(e.id));
+      // On a repeat of the same day later in the week, use the next preferred option for variety.
+      const ex = preferred.length ? preferred[round % preferred.length] : pick(slot.p, (slot.v ?? 0) + round, have, used);
+      if (ex) add(ex);
+    }
+    for (const pattern of ['core', 'lunge', 'hpull', 'shoulder'] as Pattern[]) {
+      if (exercises.length >= count) break;
+      const ex = optionsFor(pattern, have).find((e) => !used.has(e.id));
+      if (ex) add(ex);
+    }
+    for (const slot of tpl.slots.filter((x) => x.p === 'mobility')) {
+      const preferred = (slot.ids ?? []).map(getExercise).filter((e) => e.name !== 'Unknown exercise' && available(e, have) && !used.has(e.id));
+      const ex = preferred[0] ?? optionsFor('mobility', have).find((e) => !used.has(e.id));
+      if (ex) add(ex);
+    }
+    const name = round > 0 ? `${tpl.name} ${round + 1}` : tpl.name;
+    return { id: `d${i + 1}`, name, exercises };
+  });
+  return { createdAt: new Date().toISOString(), split: `${sport.label}: ${n} gym days a week`, days };
+}
+
 export function generatePlan(p: Profile): Plan {
+  const sportPlan = generateSportPlan(p);
+  if (sportPlan) return sportPlan;
   const have = equipmentFor(p);
   const split = SPLITS[Math.min(6, Math.max(2, p.days))];
   const count = exerciseCount(p.sessionMin);

@@ -144,6 +144,45 @@ const rows: Row[] = [
   ['bicycle-crunch', 'Bicycle Crunch', 'core', 'Core', '', 0, 0, 'Bring the opposite elbow and knee together, alternating sides. Reps are per side.'],
   ['side-plank', 'Side Plank', 'core', 'Core', '', 0, 0, 'On one forearm, body straight from head to feet. Hold each side. The number is seconds.', 1],
   ['russian-twist', 'Russian Twist', 'core', 'Core', '', 0, 0, 'Sit leaning back with feet off the floor and rotate your torso side to side. Reps are per side.'],
+  // Core: rigid trunk and body shape (diving, gymnastics)
+  ['hollow-hold', 'Hollow Body Hold', 'core', 'Core', '', 0, 0, 'On your back, press your lower back into the floor, lift your shoulders and straight legs a few inches and hold a banana shape. The number is seconds.', 1],
+  ['arch-hold', 'Arch Hold', 'core', 'Lower back and glutes', '', 0, 0, 'Face down, lift your arms, chest and straight legs off the floor and hold, squeezing your glutes. The number is seconds.', 1],
+  ['v-up', 'V-Up', 'core', 'Core', '', 0, 0, 'From lying flat, lift straight arms and legs together to touch your toes at the top, then lower with control.'],
+  ['pike-compression', 'Seated Pike Compression', 'core', 'Hip flexors and core', '', 0, 0, 'Sit with straight legs, hands beside your knees. Lift both heels off the floor by squeezing your thighs to your chest. Hold 2 seconds each rep.'],
+  ['pallof-press', 'Pallof Press', 'core', 'Core (anti-rotation)', 'cable', 0, 0, 'Stand side-on to a cable at chest height. Press the handle straight out and hold for 2 seconds without letting it pull you round. Reps are per side.'],
+  ['band-pallof-press', 'Banded Pallof Press', 'core', 'Core (anti-rotation)', 'band', 0, 0, 'Band anchored at chest height, stand side-on. Press it straight out and resist the twist. Reps are per side.'],
+  ['copenhagen-plank', 'Copenhagen Plank', 'core', 'Groin and obliques', 'bench', 0, 1, 'Side plank with your top foot on a bench and the bottom leg hanging. Hold each side. Protects the groin in kicking and skating sports. The number is seconds.', 1],
+  ['farmer-carry', 'Farmer Carry', 'core', 'Grip and core', 'db', 1, 0, 'Hold heavy dumbbells at your sides and walk tall for the time given, without leaning. The number is seconds.', 1],
+  // Plyometrics: jump and landing power
+  ['cmj-arm-swing', 'Arm-Swing Jump', 'plyo', 'Jump power', '', 1, 1, 'Stand tall, swing your arms back as you dip, then throw them overhead and jump as high as you can. Land softly on both feet and reset each rep. This is the same arm drive as a standing dive takeoff.'],
+  ['box-jump', 'Box Jump', 'plyo', 'Jump power', 'bench', 1, 1, 'Jump onto a sturdy box or bench, land softly in a half squat, then step down. Quality over quantity: stop before you slow down.'],
+  ['hurdle-step-jump', 'Hurdle-Step Jump', 'plyo', 'Jump power', '', 1, 1, 'Take two walking steps, lift one knee high into a hurdle, land on both feet and jump straight up with arms overhead. Mirrors a running dive approach.'],
+  ['drop-landing', 'Drop and Stick Landing', 'plyo', 'Landing control', 'bench', 1, 1, 'Step off a low box and land on both feet in a quiet half squat, knees over toes, and hold for 2 seconds. Teaches safe landings.'],
+  ['squat-jump', 'Squat Jump', 'plyo', 'Jump power', '', 1, 1, 'Squat to half depth, pause for a second, then jump as high as you can. Land softly and reset.'],
+  ['broad-jump', 'Broad Jump', 'plyo', 'Horizontal power', '', 1, 1, 'Swing your arms and jump forward as far as you can, landing on both feet. Walk back and repeat.'],
+  ['lateral-bound', 'Lateral Bound', 'plyo', 'Side-to-side power', '', 1, 1, 'Push off one leg and leap sideways, landing on the other foot and holding for a second. Reps are per side.'],
+  ['tuck-jump', 'Tuck Jump', 'plyo', 'Jump power', '', 1, 1, 'Jump straight up and pull your knees to your chest, then land softly. Builds the fast tuck for somersaults.'],
+  ['pogo-hops', 'Pogo Hops', 'plyo', 'Ankle stiffness', '', 1, 1, 'Small, quick bounces on the balls of your feet with stiff ankles and almost straight knees. Count each hop.'],
+  ['sprint-start', 'Falling Start Sprint', 'plyo', 'Acceleration', '', 1, 1, 'Lean forward until you have to step, then sprint hard for 10 to 20 metres. Walk back to recover. Count each sprint as one rep.'],
+  // Rotation power: twisting, throwing, swinging
+  ['cable-woodchop', 'Cable Woodchop', 'rotate', 'Rotational power', 'cable', 1, 0, 'Pull the cable from high on one side to low on the other, turning through your hips and chest, arms long. Reps are per side.'],
+  ['band-woodchop', 'Banded Woodchop', 'rotate', 'Rotational power', 'band', 1, 0, 'Band anchored high. Pull it down and across your body, pivoting your back foot. Reps are per side.'],
+  ['db-woodchop', 'Dumbbell Woodchop', 'rotate', 'Rotational power', 'db', 1, 0, 'Hold one dumbbell with both hands and swing it from outside one hip to above the opposite shoulder, turning your hips. Reps are per side.'],
+  ['rotational-lunge', 'Lunge with Twist', 'rotate', 'Rotational control', '', 1, 0, 'Step into a lunge and rotate your chest over your front leg, arms straight out, then return. Reps are per side.'],
+  // Shoulder health: overhead, throwing and swimming sports
+  ['band-external-rotation', 'Banded External Rotation', 'shoulder', 'Rotator cuff', 'band', 0, 0, 'Elbow tucked at your side bent to 90 degrees. Rotate your hand out against the band and back slowly. Reps are per side.'],
+  ['cable-external-rotation', 'Cable External Rotation', 'shoulder', 'Rotator cuff', 'cable', 0, 0, 'Side-on to a cable at elbow height, elbow pinned to your side. Rotate your forearm out and return slowly. Reps are per side.'],
+  ['side-lying-er', 'Side-Lying External Rotation', 'shoulder', 'Rotator cuff', 'db', 0, 0, 'Lie on your side with a light dumbbell, top elbow on your hip. Rotate the weight up toward the ceiling and lower slowly. Reps are per side.'],
+  ['ytw-raise', 'Y-T-W Raise', 'shoulder', 'Upper back and shoulders', '', 0, 0, 'Face down, thumbs up. Lift your arms into a Y, then a T, then a W, holding each for a second. One round is one rep.'],
+  ['scap-pushup', 'Scapular Push-Up', 'shoulder', 'Serratus', '', 0, 0, 'In a straight-arm plank, let your chest sink between your shoulder blades, then push the floor away to spread them. Arms stay straight.'],
+  ['wall-slide', 'Wall Slide', 'shoulder', 'Shoulder mobility', '', 0, 0, 'Back and arms flat on a wall, elbows at 90 degrees. Slide your arms up overhead without your back or hands leaving the wall.'],
+  // Mobility holds
+  ['pike-stretch', 'Pike Stretch', 'mobility', 'Hamstrings', '', 0, 1, 'Sit with straight legs together, flex your feet and fold forward from your hips with a long back. Breathe and sink deeper. The number is seconds.', 1],
+  ['pancake-stretch', 'Pancake Stretch', 'mobility', 'Hamstrings and hips', '', 0, 1, 'Sit with straight legs wide, fold forward from your hips with a flat back, walking your hands out. The number is seconds.', 1],
+  ['shoulder-dislocate', 'Band Shoulder Pass-Through', 'mobility', 'Shoulder mobility', 'band', 0, 0, 'Hold a band wide with straight arms and pass it from in front of your hips to behind your back and back again. Narrow your grip over time. Count each pass.'],
+  ['overhead-reach', 'Wall Overhead Reach', 'mobility', 'Shoulder mobility', '', 0, 0, 'Face a wall, hands on it, walk your hands up and sink your chest toward the wall to open your shoulders and upper back. The number is seconds.', 1],
+  ['hip-flexor-stretch', 'Kneeling Hip Flexor Stretch', 'mobility', 'Hip flexors', '', 0, 1, 'Half kneel, squeeze the glute of the back leg and shift forward until you feel the front of that hip stretch. Hold each side. The number is seconds.', 1],
+  ['ankle-rock', 'Knee-to-Wall Ankle Rock', 'mobility', 'Ankles', '', 0, 1, 'Foot a few inches from a wall, push your knee forward to touch it without your heel lifting. Rock in and out. Reps are per side.'],
 ];
 
 export const EXERCISES: Exercise[] = rows.map((r) => ({
@@ -208,4 +247,8 @@ export const PATTERN_LABEL: Record<Pattern, string> = {
   glute: 'Glutes',
   calves: 'Calves',
   core: 'Core',
+  plyo: 'Jumps and power',
+  rotate: 'Rotation power',
+  shoulder: 'Shoulder health',
+  mobility: 'Mobility',
 };

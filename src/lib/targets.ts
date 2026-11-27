@@ -1,7 +1,9 @@
+import { getSport } from '../data/sports';
 import type { Goal, Profile, Targets } from '../types';
 import { round } from './util';
 
 export const GOAL_LABEL: Record<Goal, string> = {
+  sport: 'Play my sport better',
   muscle: 'Build muscle',
   fat: 'Lose fat',
   strength: 'Get stronger',
@@ -16,8 +18,8 @@ export const ACTIVITY_LABEL = [
 ];
 
 const ACTIVITY_BASE = [1.2, 1.3, 1.45, 1.6];
-const GOAL_ADJ: Record<Goal, number> = { muscle: 0.1, fat: -0.2, strength: 0.05, general: 0 };
-const PROTEIN_PER_KG: Record<Goal, number> = { muscle: 2.0, fat: 2.2, strength: 1.8, general: 1.6 };
+const GOAL_ADJ: Record<Goal, number> = { sport: 0, muscle: 0.1, fat: -0.2, strength: 0.05, general: 0 };
+const PROTEIN_PER_KG: Record<Goal, number> = { sport: 1.8, muscle: 2.0, fat: 2.2, strength: 1.8, general: 1.6 };
 
 /** Mifflin-St Jeor resting energy, kcal per day. */
 export function bmr(p: Pick<Profile, 'sex' | 'age' | 'heightCm'>, weightKg: number): number {
@@ -26,7 +28,10 @@ export function bmr(p: Pick<Profile, 'sex' | 'age' | 'heightCm'>, weightKg: numb
 
 export function maintenance(p: Profile, weightKg: number): number {
   const factor = ACTIVITY_BASE[p.activity] + 0.04 * p.days;
-  return bmr(p, weightKg) * factor;
+  // Practices and games burn far more than daily life, so add them on top, spread over the week.
+  const sport = getSport(p.sport);
+  const sportKcal = sport ? (sport.kcalPerSession * (p.sportSessions ?? 0)) / 7 : 0;
+  return bmr(p, weightKg) * factor + sportKcal;
 }
 
 export function calcTargets(p: Profile, weightKg: number = p.startWeightKg): Targets {
