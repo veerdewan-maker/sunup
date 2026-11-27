@@ -89,6 +89,21 @@ describe('progression', () => {
     expect(s.sets[0].weightKg).toBe(54);
     expect(s.hint).toMatch(/lighter/);
   });
+  const rated = (x: Session, effort: 1 | 2 | 3 | 4): Session => ({ ...x, exercises: x.exercises.map((e) => ({ ...e, effort })) });
+  it('adds a double step when the top of the range felt easy', () => {
+    const s = suggest('bench-press', rx, [rated(sess('a', 2, [12, 12, 12], 60), 1)], 'kg');
+    expect(s.sets[0].weightKg).toBe(65);
+    expect(s.hint).toMatch(/easy/);
+  });
+  it('holds the weight once when the top of the range felt like a max', () => {
+    const s = suggest('bench-press', rx, [rated(sess('a', 2, [12, 12, 12], 60), 4)], 'kg');
+    expect(s.sets.map((x) => x.weightKg)).toEqual([60, 60, 60]);
+    expect(s.hint).toMatch(/once more/);
+  });
+  it('adds weight after a held session even if it still felt like a max', () => {
+    const s = suggest('bench-press', rx, [rated(sess('a', 2, [12, 12, 12], 60), 4), rated(sess('b', 5, [12, 12, 12], 60), 4)], 'kg');
+    expect(s.sets[0].weightKg).toBe(62.5);
+  });
   it('finds personal records against earlier sessions only', () => {
     const old = sess('a', 4, [8, 8, 8], 60);
     const better = sess('b', 0, [8, 8, 8], 65);

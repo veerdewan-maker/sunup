@@ -1,11 +1,18 @@
 import { useEffect, useState } from 'react';
-import { Empty, NumField, Page, Sheet, toast } from '../components/ui';
+import { Chips, Empty, NumField, Page, Sheet, toast } from '../components/ui';
 import { getExercise } from '../data/exercises';
 import { doneSets, sessionPRs, sessionVolume, type PR } from '../lib/progression';
 import { fmtClock, fmtDuration, fmtWeight, fromDisplay, toDisplay } from '../lib/util';
 import { useNav } from '../nav';
 import { addExerciseToActive, discardWorkout, finishWorkout, getState, swapActiveExercise, updateActive, useStore } from '../store';
-import type { Session, SessionExercise, SetLog } from '../types';
+import type { Effort, Session, SessionExercise, SetLog } from '../types';
+
+const EFFORTS: { value: Effort; label: string }[] = [
+  { value: 1, label: 'Easy' },
+  { value: 2, label: 'Good' },
+  { value: 3, label: 'Hard' },
+  { value: 4, label: 'Max' },
+];
 import { ExerciseList, SwapSheet } from './Train';
 
 // Kept outside the component so the countdown survives leaving and reopening the workout.
@@ -234,6 +241,19 @@ export function Workout() {
                 </button>
               </div>
             ))}
+            {doneSets(e).length > 0 && (
+              <div className="effort">
+                <div className="label">How did that feel?</div>
+                <Chips
+                  cols={4}
+                  label={`${ex.name} effort`}
+                  value={e.effort ?? (0 as Effort)}
+                  onChange={(v) => patchExercise(i, (x) => ({ ...x, effort: x.effort === v ? undefined : v }))}
+                  options={EFFORTS}
+                />
+                {!e.effort && <p className="muted small">Easy means you could have done 3 or more extra reps. Max means not one more. Next time's weight takes this into account.</p>}
+              </div>
+            )}
             <input
               className="note"
               placeholder="Note (optional)"

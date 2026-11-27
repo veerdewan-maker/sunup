@@ -58,7 +58,6 @@ export function suggest(
   }
   const last = doneSets(past[0].ex);
   const lastWeight = Math.max(...last.map((s) => s.weightKg));
-  const top = last.filter((s) => s.weightKg === lastWeight);
   const lastText = `Last time: ${lastWeight > 0 ? fmtWeight(lastWeight, units) + ' ' + units + ' × ' : ''}${last.map((s) => s.reps).join(', ')}`;
   const missed = (sets: SetLog[]) => sets.some((s) => s.reps < rx.repMin);
 
@@ -73,11 +72,26 @@ export function suggest(
     return { sets, hint: allTop ? `${lastText}. You hit the top of the range, so try a harder version or add reps.` : `${lastText}. Try to beat it.` };
   }
 
-  if (last.length >= rx.sets && top.length === last.length && last.every((s) => s.reps >= rx.repMax)) {
-    const next = roundDisplay(toDisplay(lastWeight, units) + increment(ex.lower, units), units);
+  const hitTop = (sets: SetLog[], w: number) =>
+    sets.length >= rx.sets && sets.every((s) => s.weightKg === w) && sets.every((s) => s.reps >= rx.repMax);
+  if (hitTop(last, lastWeight)) {
+    const effort = past[0].ex.effort;
+    const prev = past[1] ? doneSets(past[1].ex) : [];
+    const heldAlready = prev.length > 0 && Math.max(...prev.map((s) => s.weightKg)) === lastWeight && hitTop(prev, lastWeight);
+    if (effort === 4 && !heldAlready) {
+      return {
+        sets: Array.from({ length: rx.sets }, () => ({ weightKg: lastWeight, reps: rx.repMax, done: false })),
+        hint: `${lastText}. You hit ${rx.repMax} on every set but it felt like your max, so keep ${fmtWeight(lastWeight, units)} ${units} once more and make it feel smoother.`,
+      };
+    }
+    const step = increment(ex.lower, units) * (effort === 1 ? 2 : 1);
+    const next = roundDisplay(toDisplay(lastWeight, units) + step, units);
     return {
       sets: blank(fromDisplay(next, units), rx.repMin),
-      hint: `${lastText}. All sets hit ${rx.repMax}, so the weight goes up to ${next} ${units}.`,
+      hint:
+        effort === 1
+          ? `${lastText}. All sets hit ${rx.repMax} and it felt easy, so the weight jumps to ${next} ${units}.`
+          : `${lastText}. All sets hit ${rx.repMax}, so the weight goes up to ${next} ${units}.`,
     };
   }
   if (past.length >= 2 && missed(last) && missed(doneSets(past[1].ex))) {

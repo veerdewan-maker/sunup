@@ -103,7 +103,11 @@ export interface SessionExercise {
   restSec: number;
   note?: string;
   hint?: string;
+  /** How hard the exercise felt: 1 easy, 2 good, 3 hard, 4 couldn't do another rep. */
+  effort?: Effort;
 }
+
+export type Effort = 1 | 2 | 3 | 4;
 export interface Session {
   id: string;
   date: string;
@@ -153,6 +157,21 @@ export interface WeightLog {
   kg: number;
 }
 
+/** A group of foods saved under a name, logged together in one tap. */
+export interface SavedMeal {
+  id: string;
+  name: string;
+  items: Omit<FoodEntry, 'id' | 'date' | 'meal'>[];
+}
+
+export type MeasureKey = 'waist' | 'chest' | 'hips' | 'arm' | 'thigh';
+
+/** Body measurements in centimetres, one entry per day. */
+export interface MeasureLog {
+  date: string;
+  cm: Partial<Record<MeasureKey, number>>;
+}
+
 export interface Checkin {
   date: string;
   weightChangeKg: number | null;
@@ -183,6 +202,8 @@ export interface AppState {
   favourites: FoodItem[];
   water: Record<string, number>;
   weights: WeightLog[];
+  savedMeals: SavedMeal[];
+  measurements: MeasureLog[];
   checkins: Checkin[];
   settings: Settings;
   /** When this copy was written to storage. */
