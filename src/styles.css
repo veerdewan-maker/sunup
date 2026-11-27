@@ -1,15 +1,22 @@
 :root {
-  --bg: #0e1116;
-  --card: #171b22;
-  --card2: #1f242d;
-  --track: #2a303b;
-  --text: #eef1f5;
-  --muted: #98a1b0;
-  --accent: #c8f560;
-  --accent-ink: #141a05;
-  --protein: #6fb3ff;
-  --carbs: #ffc857;
+  /* Greens, darkest to lightest */
+  --bg: #09100c;
+  --card: #101a14;
+  --card2: #16241b;
+  --track: #223529;
+  --deep: #123524;
+  --forest: #1f7a4d;
+  --emerald: #34d399;
+  --mint: #a8f0c6;
+  --sage: #7fb894;
+  --accent: #c2f24e;
+  --accent-ink: #0f1a04;
+  --text: #eef6f0;
+  --muted: #93a89b;
+  --protein: #34d399;
+  --carbs: #f2d95c;
   --fat: #ff8a7a;
+  --water: #7fe3d0;
   --danger: #ff6b5e;
   --radius: 16px;
   --tabbar: 64px;
@@ -31,6 +38,7 @@ body {
   line-height: 1.4;
   -webkit-text-size-adjust: 100%;
   overscroll-behavior-y: none;
+  touch-action: manipulation;
 }
 
 body {
@@ -223,7 +231,7 @@ button:disabled {
 .card.highlight {
   box-shadow: inset 0 0 0 1.5px var(--accent);
 }
-.card.note {
+.card.tip {
   background: var(--card2);
 }
 .card.center {
@@ -931,4 +939,187 @@ button:disabled {
   border-top: 1px solid var(--track);
   padding-top: 8px;
   font-size: 14px;
+}
+
+/* ---------- Green trims ---------- */
+body {
+  background:
+    radial-gradient(120% 60% at 50% -10%, rgba(31, 122, 77, 0.28), transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
+}
+.page {
+  background:
+    radial-gradient(120% 60% at 50% -10%, rgba(31, 122, 77, 0.22), transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
+}
+.label {
+  color: var(--sage);
+}
+.card {
+  box-shadow: inset 0 0 0 1px rgba(127, 184, 148, 0.08);
+}
+.card.highlight {
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+  background: linear-gradient(160deg, #15291c, var(--card) 60%);
+}
+.card.tip {
+  background: var(--deep);
+  box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.35);
+}
+.card.tip h2 {
+  color: var(--mint);
+}
+.btn.primary,
+.card .btn.primary,
+.sheet .btn.primary,
+.resume-bar {
+  background: linear-gradient(135deg, #d2f86a 0%, #8fe36f 100%);
+  color: var(--accent-ink);
+}
+.btn.ghost,
+.card .btn.ghost,
+.sheet .btn.ghost {
+  box-shadow: inset 0 0 0 1px rgba(127, 184, 148, 0.32);
+}
+.chip.on,
+.card .chip.on,
+.sheet .chip.on {
+  background: var(--emerald);
+  color: #04180f;
+}
+.pill {
+  background: var(--deep);
+  color: var(--mint);
+}
+.pill.accent {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.how {
+  background: var(--deep);
+  border-left: 3px solid var(--forest);
+}
+.tabbar {
+  background: color-mix(in srgb, #0c1610 97%, transparent);
+  border-top-color: rgba(127, 184, 148, 0.18);
+}
+.tabbar button.on {
+  color: var(--accent);
+}
+.tabbar button.on svg {
+  filter: drop-shadow(0 0 6px rgba(194, 242, 78, 0.45));
+}
+.page-head {
+  border-bottom-color: rgba(127, 184, 148, 0.18);
+}
+.ob-progress span.on {
+  background: linear-gradient(90deg, var(--emerald), var(--accent));
+}
+.option.on {
+  box-shadow: inset 0 0 0 2px var(--emerald);
+  background: var(--deep);
+}
+.option.on strong {
+  color: var(--mint);
+}
+.set-row.done .field-input {
+  background: rgba(52, 211, 153, 0.16);
+}
+.tick.on {
+  background: var(--emerald);
+  color: #04180f;
+}
+.rest-bar {
+  background: var(--deep);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(52, 211, 153, 0.4);
+}
+.rest-fill {
+  background: rgba(52, 211, 153, 0.22);
+}
+.week-fill {
+  background: var(--forest);
+}
+.week-fill.hit {
+  background: linear-gradient(180deg, var(--accent), var(--emerald));
+}
+.field-input:focus-within,
+.search:focus,
+.note:focus,
+.select:focus {
+  box-shadow: 0 0 0 2px var(--emerald);
+}
+.check input {
+  accent-color: var(--emerald);
+}
+.stats strong {
+  color: var(--mint);
+}
+.toast {
+  background: var(--mint);
+  color: #06281a;
+}
+
+/* ---------- Phone fit ---------- */
+/* Equal-width choice rows that never wrap awkwardly on narrow phones. */
+.chips.fill {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 2), minmax(0, 1fr));
+  flex-wrap: nowrap;
+}
+.chips.fill .chip {
+  padding: 0 6px;
+  min-width: 0;
+  white-space: normal;
+  line-height: 1.15;
+  text-align: center;
+}
+/* Footers sit on a solid fade so content never shows through the buttons. */
+.ob-foot,
+.sticky-foot {
+  margin: 0 -20px calc(-1 * (env(safe-area-inset-bottom) + 16px));
+  padding: 20px 20px calc(env(safe-area-inset-bottom) + 16px);
+  bottom: 0;
+  background: linear-gradient(to bottom, transparent, var(--bg) 34%);
+  z-index: 4;
+}
+.sticky-foot {
+  margin: 0 -16px calc(-1 * (env(safe-area-inset-bottom) + 32px));
+  padding: 20px 16px calc(env(safe-area-inset-bottom) + 16px);
+}
+/* Messages appear at the top, clear of the buttons and the tab bar. */
+.toast {
+  top: calc(env(safe-area-inset-top) + 12px);
+  bottom: auto;
+}
+@media (max-width: 350px) {
+  .screen,
+  .page-body {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  .card {
+    padding: 14px;
+  }
+  .food-summary {
+    gap: 12px;
+  }
+  .set-head,
+  .set-row {
+    grid-template-columns: 22px 1fr 1fr 48px;
+    gap: 6px;
+  }
+  .tick {
+    width: 48px;
+  }
+  .sticky-foot {
+    margin-left: -12px;
+    margin-right: -12px;
+  }
+}
+@media (max-height: 620px) {
+  .sheet {
+    max-height: 94dvh;
+  }
 }

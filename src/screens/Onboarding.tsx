@@ -110,11 +110,11 @@ export function Onboarding() {
             <div className="row2">
               <div>
                 <div className="label">Units</div>
-                <Chips label="Units" value={units} onChange={setUnits} options={[{ value: 'kg', label: 'kg / cm' }, { value: 'lb', label: 'lb / ft' }]} />
+                <Chips cols={2} label="Units" value={units} onChange={setUnits} options={[{ value: 'kg', label: 'kg / cm' }, { value: 'lb', label: 'lb / ft' }]} />
               </div>
               <div>
                 <div className="label">Sex</div>
-                <Chips label="Sex" value={sex} onChange={setSex} options={[{ value: 'male', label: 'Male' }, { value: 'female', label: 'Female' }]} />
+                <Chips cols={2} label="Sex" value={sex} onChange={setSex} options={[{ value: 'male', label: 'Male' }, { value: 'female', label: 'Female' }]} />
               </div>
             </div>
             <NumField label="Age" value={age} onChange={setAge} decimal={false} suffix="years" />
@@ -145,6 +145,7 @@ export function Onboarding() {
             </div>
             <div className="label">I've been lifting for…</div>
             <Chips
+              cols={2}
               label="Experience"
               value={experience}
               onChange={setExperience}
@@ -162,9 +163,9 @@ export function Onboarding() {
           <>
             <h1>Your schedule</h1>
             <div className="label">Days per week</div>
-            <Chips label="Days per week" value={days} onChange={setDays} options={[2, 3, 4, 5, 6].map((d) => ({ value: d, label: String(d) }))} />
+            <Chips cols={5} label="Days per week" value={days} onChange={setDays} options={[2, 3, 4, 5, 6].map((d) => ({ value: d, label: String(d) }))} />
             <div className="label">Time per workout</div>
-            <Chips label="Time per workout" value={sessionMin} onChange={setSessionMin} options={[30, 45, 60, 90].map((d) => ({ value: d, label: `${d} min` }))} />
+            <Chips cols={4} label="Time per workout" value={sessionMin} onChange={setSessionMin} options={[30, 45, 60, 90].map((d) => ({ value: d, label: `${d} min` }))} />
             <p className="muted">Pick what you can keep up every week. Showing up beats the perfect plan.</p>
           </>
         )}

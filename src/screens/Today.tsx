@@ -32,7 +32,7 @@ export function WaterCard({ date }: { date: string }) {
         </span>
       </div>
       <div className="bar-track">
-        <div className="bar-fill" style={{ width: `${pct}%`, background: 'var(--protein)' }} />
+        <div className="bar-fill" style={{ width: `${pct}%`, background: 'var(--water)' }} />
       </div>
       <div className="btn-row">
         <button className="btn small" onClick={() => addWater(date, 250)}>
@@ -86,7 +86,7 @@ export function Today() {
       </header>
 
       {showInstall && (
-        <section className="card note">
+        <section className="card tip">
           <div className="card-head">
             <h2>Add to your home screen</h2>
             <button className="icon-btn" onClick={() => patchSettings({ installHintDismissed: true })} aria-label="Dismiss">
@@ -102,7 +102,7 @@ export function Today() {
       )}
 
       {backupDue && (
-        <section className="card note">
+        <section className="card tip">
           <h2>Time to back up</h2>
           <p className="muted">Your data lives only on this device. Save a backup file so you can restore it if anything happens.</p>
           <div className="btn-row">
@@ -117,7 +117,7 @@ export function Today() {
       )}
 
       {checkinDue(s) && (
-        <section className="card note">
+        <section className="card tip">
           <h2>Weekly check-in is ready</h2>
           <p className="muted">See how your week went and whether your targets need a tweak.</p>
           <button className="btn small primary" onClick={() => nav.setTab('progress')}>

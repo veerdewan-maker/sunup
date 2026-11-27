@@ -17,7 +17,7 @@ const check = (name, ok, detail = '') => {
 let dbgPage;
 (async () => {
   const browser = await chromium.launch();
-  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, hasTouch: true, isMobile: true, acceptDownloads: true });
+  const ctx = await browser.newContext({ viewport: { width: +(process.env.VW || 390), height: +(process.env.VH || 844) }, deviceScaleFactor: +(process.env.DSF || 1), hasTouch: true, isMobile: true, acceptDownloads: true });
   const page = await ctx.newPage();
   dbgPage = page;
   const errors = [];
@@ -37,6 +37,20 @@ let dbgPage;
   const overflow = async (label) => {
     const w = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     check(`no sideways scroll: ${label}`, w <= 0, `overflow ${w}px`);
+    const out = await page.evaluate(() => {
+      const vw = window.innerWidth;
+      const bad = [];
+      for (const el of document.querySelectorAll('body *')) {
+        if (el.offsetParent === null || el.closest('.chips.scroll') || el.closest('svg')) continue;
+        const r = el.getBoundingClientRect();
+        if (r.width === 0) continue;
+        if (r.right > vw + 1 || r.left < -1) bad.push(`${el.tagName}.${el.className} sticks out (${Math.round(r.left)}..${Math.round(r.right)})`);
+        else if (el.matches('button, .pill, h1, h2, strong') && el.scrollWidth > el.clientWidth + 1 && getComputedStyle(el).overflow !== 'visible' && !el.matches('.page-head h1'))
+          bad.push(`${el.tagName}.${el.className} text clipped: ${el.textContent.slice(0, 25)}`);
+      }
+      return bad.slice(0, 5);
+    });
+    check(`nothing cut off: ${label}`, out.length === 0, out.join('; '));
   };
   const smallTargets = async (label) => {
     const bad = await page.evaluate(() =>
