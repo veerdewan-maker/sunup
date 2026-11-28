@@ -1,14 +1,14 @@
 import { useMemo, useState } from 'react';
-import { Empty, Page, Sheet, toast } from '../components/ui';
+import { Empty, NumField, Page, Sheet, toast } from '../components/ui';
 import { EXERCISES, PATTERN_LABEL, getExercise } from '../data/exercises';
 import { SEASON_LABEL, getSport } from '../data/sports';
 import { alternatives, available, equipmentFor } from '../lib/plan';
 import { doneSets, sessionVolume } from '../lib/progression';
 import { finished, nextPlanDayIndex, workoutsInWeek } from '../lib/stats';
-import { fmtDuration, fmtWeight, niceDate, toDisplay, ymd } from '../lib/util';
+import { fmtDuration, fmtWeight, fromDisplay, niceDate, toDisplay, ymd } from '../lib/util';
 import { useNav } from '../nav';
-import { deleteSession, startWorkout, swapPlanExercise, useStore } from '../store';
-import type { Exercise, PlanExercise } from '../types';
+import { deleteSession, startWorkout, swapPlanExercise, updateSession, useStore } from '../store';
+import type { Exercise, PlanExercise, Session } from '../types';
 
 export function rxText(e: { sets: number; repMin: number; repMax: number }, timed?: boolean): string {
   return `${e.sets} × ${e.repMin}–${e.repMax}${timed ? ' sec' : ''}`;
@@ -277,6 +277,7 @@ export function History() {
   const list = finished(s.sessions);
   const [open, setOpen] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<string | null>(null);
+  const [edit, setEdit] = useState<Session | null>(null);
   return (
     <Page title="Workout history" onBack={nav.back}>
       {list.length === 0 && <Empty>No workouts yet. Finish your first one and it will show up here.</Empty>}
@@ -310,6 +311,11 @@ export function History() {
                   );
                 })}
                 <div className="btn-row">
+                  {confirm !== x.id && (
+                    <button className="btn small" onClick={() => setEdit(structuredClone(x))}>
+                      Edit
+                    </button>
+                  )}
                   {confirm === x.id ? (
                     <>
                       <button
@@ -337,6 +343,51 @@ export function History() {
           </div>
         ))}
       </div>
+      {edit && (
+        <Sheet title={`Edit ${edit.name}`} onClose={() => setEdit(null)}>
+          {edit.exercises.map((e, i) => {
+            const ex = getExercise(e.exId);
+            const patch = (j: number, p: Partial<(typeof e.sets)[number]>) =>
+              setEdit({ ...edit, exercises: edit.exercises.map((x, k) => (k !== i ? x : { ...x, sets: x.sets.map((st, m) => (m === j ? { ...st, ...p } : st)) })) });
+            return (
+              <div key={i} className="edit-ex">
+                <strong>{ex.name}</strong>
+                {e.sets.map((st, j) => (
+                  <div key={j} className="set-row">
+                    <span className="set-n">{j + 1}</span>
+                    <NumField
+                      label={`${ex.name} set ${j + 1} weight`}
+                      bare
+                      value={st.weightKg > 0 ? Number(toDisplay(st.weightKg, units).toFixed(2)) : null}
+                      placeholder={ex.needs.length ? '0' : 'BW'}
+                      onChange={(v) => patch(j, { weightKg: v ? fromDisplay(v, units) : 0 })}
+                    />
+                    <NumField label={`${ex.name} set ${j + 1} reps`} bare decimal={false} value={st.reps || null} onChange={(v) => patch(j, { reps: v ?? 0 })} />
+                    <button
+                      className="tick"
+                      aria-label={`Remove ${ex.name} set ${j + 1}`}
+                      onClick={() => setEdit({ ...edit, exercises: edit.exercises.map((x, k) => (k !== i ? x : { ...x, sets: x.sets.filter((_, m) => m !== j) })) })}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+          <button
+            className="btn primary block"
+            onClick={() => {
+              const clean = { ...edit, exercises: edit.exercises.map((e) => ({ ...e, sets: e.sets.filter((st) => st.reps > 0) })).filter((e) => e.sets.length) };
+              updateSession(edit.id, () => clean);
+              setEdit(null);
+              toast('Workout updated');
+            }}
+          >
+            Save changes
+          </button>
+        </Sheet>
+      )}
     </Page>
   );
 }

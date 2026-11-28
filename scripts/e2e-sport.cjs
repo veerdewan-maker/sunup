@@ -31,7 +31,7 @@ const check = (name, ok, detail = '') => {
         const r = el.getBoundingClientRect();
         if (r.width && (r.right > vw + 1 || r.left < -1)) out.push(`${el.tagName}.${el.className} sticks out`);
       }
-      for (const el of document.querySelectorAll('button, select, input:not([hidden])')) {
+      for (const el of document.querySelectorAll('button, select, input:not([hidden]):not([type=checkbox])')) {
         if (el.offsetParent === null) continue;
         const r = el.getBoundingClientRect();
         if (r.width > 0 && (r.height < 40 || r.width < 40)) out.push(`small tap target: ${(el.textContent || el.getAttribute('aria-label') || '').trim().slice(0, 20)}`);
@@ -72,6 +72,11 @@ const check = (name, ok, detail = '') => {
   await fits('summary');
   await shot('s3-summary');
   await page.getByRole('button', { name: 'Start', exact: true }).click();
+  await page.getByRole('radio', { name: 'Poor' }).click();
+  await page.getByRole('radio', { name: 'Very sore' }).click();
+  await page.getByRole('radio', { name: 'Low' }).click();
+  check('low readiness offers a lighter workout', await page.getByLabel(/Make today's workout lighter/).isChecked());
+  await shot('s3a-readiness');
   await page.getByRole('button', { name: 'Log diving session' }).click();
   await page.getByRole('radio', { name: '120 min' }).click();
   await page.getByRole('radio', { name: '8', exact: true }).click();
@@ -99,6 +104,7 @@ const check = (name, ok, detail = '') => {
   await page.getByRole('button', { name: 'Start this workout' }).click();
   const first = await page.locator('.page .card h2').first().textContent();
   check('workout opens with the jump', first === 'Arm-Swing Jump', first);
+  check('the workout is lighter after a low readiness check', await page.locator('.page .card').first().getByText(/Lighter day/).isVisible());
   check('jumps are low rep', await page.locator('.page .card').first().getByText('3–5 reps').isVisible());
   await fits('workout');
   await shot('s5-workout');

@@ -173,3 +173,32 @@ export function e1rmSeries(exId: string, sessions: Session[]): { date: string; v
   }
   return [...byDay.entries()].map(([date, value]) => ({ date, value })).sort((a, b) => a.date.localeCompare(b.date));
 }
+
+/**
+ * Warm-up ramp before a heavy set: the empty bar (or a very light weight), then about 40%, 60% and 80%.
+ * Weights are rounded to what you can load, and steps that would repeat a weight are dropped.
+ */
+export function warmups(workKg: number, units: Units, barbell: boolean): { weightKg: number; reps: number }[] {
+  if (workKg <= 0) return [];
+  const step = units === 'kg' ? 2.5 : 5;
+  const bar = units === 'kg' ? 20 : 45;
+  const work = toDisplay(workKg, units);
+  const ramp: [number, number][] = [
+    [0.4, 8],
+    [0.6, 5],
+    [0.8, 3],
+  ];
+  const out: { weightKg: number; reps: number }[] = [];
+  const minimum = barbell ? bar : step;
+  if (barbell && work > bar * 1.4) out.push({ weightKg: fromDisplay(bar, units), reps: 10 });
+  for (const [pct, reps] of ramp) {
+    const v = Math.max(minimum, Math.round((work * pct) / step) * step);
+    if (v >= work) continue;
+    const kg = fromDisplay(v, units);
+    // Skip a step that is barely heavier than the one before; it only adds fatigue.
+    const prev = out.length ? toDisplay(out[out.length - 1].weightKg, units) : 0;
+    if (out.length && v - prev < work * 0.15) continue;
+    out.push({ weightKg: kg, reps });
+  }
+  return out;
+}

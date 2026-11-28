@@ -5,7 +5,7 @@ import { generatePlan, prescription } from './lib/plan';
 import { suggest } from './lib/progression';
 import { calcTargets, dayTargets } from './lib/targets';
 import { uid, ymd } from './lib/util';
-import type { AppState, Checkin, FoodEntry, FoodItem, Meal, MeasureLog, Meet, PhotoMeta, Pose, Practice, Profile, SavedMeal, Session, SessionExercise, Targets } from './types';
+import type { AppState, Checkin, FoodEntry, FoodItem, Meal, MeasureLog, Meet, PhotoMeta, Pose, Practice, Profile, Readiness, SavedMeal, Session, SessionExercise, Targets } from './types';
 
 const KEY = 'sunup-state-v1';
 
@@ -27,6 +27,7 @@ export function emptyState(): AppState {
     photos: [],
     practices: [],
     meets: [],
+    readiness: {},
     checkins: [],
     settings: { restTimer: true },
   };
@@ -187,17 +188,26 @@ function buildSessionExercise(exId: string, rx: { sets: number; repMin: number; 
   return { exId, sets: sug.sets, repMin: rx.repMin, repMax: rx.repMax, restSec: rx.restSec, hint: sug.hint };
 }
 
+/** A lighter version of an exercise for a low-readiness day: one set fewer, same weights. */
+export function lighten(e: SessionExercise): SessionExercise {
+  if (e.sets.length <= 1) return e;
+  return { ...e, sets: e.sets.slice(0, -1), hint: `Lighter day: one set fewer.${e.hint ? ' ' + e.hint : ''}` };
+}
+
 export function startWorkout(planDayId: string | null) {
   update((s) => {
     if (s.active) return s;
     const day = planDayId ? s.plan?.days.find((d) => d.id === planDayId) : undefined;
+    const light = !!s.readiness[ymd()]?.light;
+    let exercises = day ? day.exercises.map((e) => buildSessionExercise(e.exId, e, s)) : [];
+    if (light) exercises = exercises.map(lighten);
     const session: Session = {
       id: uid(),
       date: ymd(),
       startedAt: Date.now(),
       planDayId: day?.id,
       name: day?.name ?? 'Custom workout',
-      exercises: day ? day.exercises.map((e) => buildSessionExercise(e.exId, e, s)) : [],
+      exercises,
     };
     return { ...s, active: session };
   });
@@ -252,6 +262,25 @@ export function finishWorkout(): Session | null {
 
 export function discardWorkout() {
   update((s) => ({ ...s, active: null }));
+}
+
+export function updateSession(id: string, fn: (s: Session) => Session) {
+  update((s) => ({ ...s, sessions: s.sessions.map((x) => (x.id === id ? fn(x) : x)) }));
+}
+
+// ---------- Readiness ----------
+
+export function readinessScore(r: Pick<Readiness, 'sleep' | 'soreness' | 'energy'>): number {
+  return r.sleep + r.soreness + r.energy;
+}
+
+export function setReadiness(date: string, r: Omit<Readiness, 'light'> & { light?: boolean }) {
+  update((s) => {
+    const prev = s.readiness[date];
+    // Suggest a lighter day automatically when the score is low, unless the user already chose.
+    const light = r.light ?? (prev?.light !== undefined && readinessScore(prev) <= 4 === readinessScore(r) <= 4 ? prev.light : readinessScore(r) <= 4);
+    return { ...s, readiness: { ...s.readiness, [date]: { ...r, light } } };
+  });
 }
 
 export function deleteSession(id: string) {

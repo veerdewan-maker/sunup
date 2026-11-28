@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Chips, Empty, NumField, Page, Sheet, toast } from '../components/ui';
 import { getExercise } from '../data/exercises';
-import { doneSets, sessionPRs, sessionVolume, type PR } from '../lib/progression';
+import { doneSets, sessionPRs, sessionVolume, warmups, type PR } from '../lib/progression';
 import { fmtClock, fmtDuration, fmtWeight, fromDisplay, toDisplay } from '../lib/util';
 import { useNav } from '../nav';
 import { addExerciseToActive, discardWorkout, finishWorkout, getState, swapActiveExercise, updateActive, useStore } from '../store';
@@ -104,6 +104,7 @@ export function Workout() {
   const a = s.active;
   const units = s.profile!.units;
   const [how, setHow] = useState<number | null>(null);
+  const [warm, setWarm] = useState<number | null>(null);
   const [swap, setSwap] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
@@ -201,6 +202,17 @@ export function Workout() {
             </div>
             {e.hint && <p className="muted small">{e.hint}</p>}
             {how === i && <p className="how">{ex.how}</p>}
+            {warm === i && (
+              <div className="warmup-list" aria-label={`${ex.name} warm-up`}>
+                <strong>Warm-up before your first set</strong>
+                {warmups(Math.max(...e.sets.map((x) => x.weightKg)), units, ex.needs.includes('bb')).map((w, k) => (
+                  <span key={k}>
+                    {fmtWeight(w.weightKg, units)} {units} × {w.reps}
+                  </span>
+                ))}
+                <span className="muted small">Rest about a minute between these. They don't count as work sets.</span>
+              </div>
+            )}
             <div className="set-head muted small">
               <span>Set</span>
               <span>{units}</span>
@@ -283,6 +295,11 @@ export function Workout() {
               <button className="btn small ghost" disabled={e.sets.length <= 1} onClick={() => patchExercise(i, (x) => ({ ...x, sets: x.sets.slice(0, -1) }))}>
                 − Set
               </button>
+              {ex.compound && ex.needs.length > 0 && warmups(Math.max(...e.sets.map((x) => x.weightKg)), units, ex.needs.includes('bb')).length > 0 && (
+                <button className="btn small ghost" onClick={() => setWarm(warm === i ? null : i)}>
+                  {warm === i ? 'Hide warm-up' : 'Warm-up'}
+                </button>
+              )}
               <button className="btn small ghost" onClick={() => setHow(how === i ? null : i)}>
                 {how === i ? 'Hide how-to' : 'How-to'}
               </button>
