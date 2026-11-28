@@ -2,11 +2,12 @@ import { useMemo, useState } from 'react';
 import { Chips, Empty, LineChart, NumField, Sheet, toast } from '../components/ui';
 import { getExercise } from '../data/exercises';
 import { allTimeBests, e1rmSeries } from '../lib/progression';
-import { buildCheckin, checkinDue, currentWeight, foodStreak, weeklyCounts, weeklyRate, weightTrend, workoutsInWeek } from '../lib/stats';
+import { buildCheckin, checkinDue, loadChange, weeklyLoad, currentWeight, foodStreak, weeklyCounts, weeklyRate, weightTrend, workoutsInWeek } from '../lib/stats';
 import { addDays, fmtBody, fmtWeight, fromDisplay, niceDate, parseYmd, shortDate, toDisplay, ymd } from '../lib/util';
 import { deleteMeasurements, deleteWeight, logMeasurements, logWeight, saveCheckin, useStore } from '../store';
 import type { MeasureKey } from '../types';
 import { PhotosCard } from './Photos';
+import { getSport } from '../data/sports';
 
 function CheckinCard() {
   const s = useStore();
@@ -196,6 +197,47 @@ function MeasurementsCard() {
   );
 }
 
+function LoadCard() {
+  const s = useStore();
+  const weeks = useMemo(() => weeklyLoad(s, 6), [s]);
+  const sport = getSport(s.profile!.sport);
+  if (!sport) return null;
+  const max = Math.max(1, ...weeks.map((w) => w.gym + w.sport));
+  const change = loadChange(weeks);
+  const any = weeks.some((w) => w.gym + w.sport > 0);
+  return (
+    <section className="card">
+      <div className="card-head">
+        <h2>Training load</h2>
+        <span className="muted">minutes × effort</span>
+      </div>
+      {!any ? (
+        <Empty>Log your {sport.label.toLowerCase()} sessions on the Today screen. Together with your gym workouts, they show how hard each week was.</Empty>
+      ) : (
+        <>
+          <div className="weeks six" role="img" aria-label="Training load for the last 6 weeks">
+            {weeks.map((w) => (
+              <div key={w.week} className="week">
+                <div className="week-bar stack">
+                  <div className="week-fill" style={{ height: `${(w.gym / max) * 100}%`, background: 'var(--accent)' }} />
+                  <div className="week-fill" style={{ height: `${(w.sport / max) * 100}%`, background: 'var(--water)' }} />
+                </div>
+                <span>{Math.round((w.gym + w.sport) / 100) / 10}k</span>
+              </div>
+            ))}
+          </div>
+          <p className="muted small center">
+            <span style={{ color: 'var(--water)' }}>■</span> {sport.label} <span style={{ color: 'var(--accent)' }}>■</span> Gym
+          </p>
+          {change != null && change > 0.3 && (
+            <p className="hint">This week is already {Math.round(change * 100)}% above your recent average. Big jumps raise injury risk, so keep the rest of the week lighter if you can.</p>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
+
 export function Progress() {
   const s = useStore();
   const p = s.profile!;
@@ -314,6 +356,8 @@ export function Progress() {
           </>
         )}
       </section>
+
+      <LoadCard />
 
       <MeasurementsCard />
 

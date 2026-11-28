@@ -255,25 +255,41 @@ export function NumField({
   );
 }
 
-let toastFn: (msg: string) => void = () => undefined;
-export function toast(msg: string) {
-  toastFn(msg);
+interface ToastMsg {
+  text: string;
+  action?: { label: string; run: () => void };
+}
+let toastFn: (msg: ToastMsg) => void = () => undefined;
+/** Shows a short message. Pass an action to offer a button such as Undo. */
+export function toast(text: string, action?: ToastMsg['action']) {
+  toastFn({ text, action });
 }
 export function Toaster() {
-  const [msg, setMsg] = useState<string | null>(null);
+  const [msg, setMsg] = useState<ToastMsg | null>(null);
   useEffect(() => {
     let t: ReturnType<typeof setTimeout>;
     toastFn = (m) => {
       setMsg(m);
       clearTimeout(t);
-      t = setTimeout(() => setMsg(null), 2600);
+      t = setTimeout(() => setMsg(null), m.action ? 5000 : 2600);
     };
     return () => clearTimeout(t);
   }, []);
   if (!msg) return null;
   return (
-    <div className="toast" role="status">
-      {msg}
+    <div className={'toast' + (msg.action ? ' with-action' : '')} role="status">
+      <span>{msg.text}</span>
+      {msg.action && (
+        <button
+          className="toast-btn"
+          onClick={() => {
+            msg.action!.run();
+            setMsg(null);
+          }}
+        >
+          {msg.action.label}
+        </button>
+      )}
     </div>
   );
 }

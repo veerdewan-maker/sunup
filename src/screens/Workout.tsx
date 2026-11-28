@@ -215,7 +215,14 @@ export function Workout() {
                   bare
                   value={st.weightKg > 0 ? Number(toDisplay(st.weightKg, units).toFixed(2)) : null}
                   placeholder={ex.needs.length ? '0' : 'BW'}
-                  onChange={(v) => patchSet(i, j, { weightKg: v ? fromDisplay(v, units) : 0 })}
+                  onChange={(v) => {
+                    const w = v ? fromDisplay(v, units) : 0;
+                    // Later sets that still match this set's old weight follow along, so you only type it once.
+                    patchExercise(i, (x) => ({
+                      ...x,
+                      sets: x.sets.map((ss, k) => (k === j || (k > j && !ss.done && ss.weightKg === st.weightKg) ? { ...ss, weightKg: w } : ss)),
+                    }));
+                  }}
                 />
                 <NumField
                   label={`${ex.name} set ${j + 1} ${ex.timed ? 'seconds' : 'reps'}`}

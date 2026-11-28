@@ -198,3 +198,23 @@ describe('sport plans', () => {
     expect(recommendedDays(4, 'pre')).toBe(3);
   });
 });
+
+describe('training load and competitions', () => {
+  it('adds gym and sport load per week and flags big jumps', async () => {
+    const { weeklyLoad, loadChange, nextMeet } = await import('./stats');
+    const { emptyState } = await import('../store');
+    const today = ymd();
+    const st = { ...emptyState(), profile: { ...base, sport: 'diving' as const } };
+    const practice = (daysAgo: number, minutes: number, effort: number) => ({ id: String(daysAgo), date: addDays(today, -daysAgo), kind: 'practice' as const, minutes, effort });
+    st.practices = [practice(7, 100, 5), practice(14, 100, 5), practice(21, 100, 5), practice(0, 120, 8)];
+    const t0 = Date.now();
+    st.sessions = [{ id: 'g', date: today, startedAt: t0 - 3600000, finishedAt: t0, name: 'x', exercises: [] }];
+    const weeks = weeklyLoad(st, 4, today);
+    expect(weeks[3].sport).toBe(960);
+    expect(weeks[3].gym).toBe(360);
+    expect(weeks[2].sport).toBe(500);
+    expect(loadChange(weeks)!).toBeGreaterThan(1);
+    st.meets = [{ id: 'm', date: addDays(today, 3), name: 'Regionals' }, { id: 'old', date: addDays(today, -3), name: 'Old' }];
+    expect(nextMeet(st, today)).toMatchObject({ name: 'Regionals', days: 3 });
+  });
+});

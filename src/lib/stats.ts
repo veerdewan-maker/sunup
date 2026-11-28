@@ -153,3 +153,51 @@ export function suggestKcalDelta(goal: Goal, weights: WeightLog[], today: string
   }
   return 0;
 }
+
+/** Gym effort is rated 1 to 4 per exercise; map the average onto the 0-10 session effort scale. */
+function gymEffort(s: Session): number {
+  const rated = s.exercises.map((e) => e.effort).filter((x): x is NonNullable<typeof x> => x != null);
+  if (!rated.length) return 6;
+  const avg = rated.reduce((a, b) => a + b, 0) / rated.length;
+  return Math.round(3 + avg * 1.75);
+}
+
+/**
+ * Training load per week (minutes × effort, the "session RPE" method), oldest first,
+ * counting both gym workouts and sport practices or games.
+ */
+export function weeklyLoad(state: AppState, n: number, today: string = ymd()): { week: string; gym: number; sport: number }[] {
+  const start = weekStart(today);
+  const weeks = Array.from({ length: n }, (_, i) => ({ week: addDays(start, -7 * (n - 1 - i)), gym: 0, sport: 0 }));
+  const find = (date: string) => weeks.find((w) => w.week === weekStart(date));
+  for (const s of finished(state.sessions)) {
+    const w = find(s.date);
+    if (!w) continue;
+    const minutes = Math.min(180, Math.max(10, ((s.finishedAt ?? s.startedAt) - s.startedAt) / 60000));
+    w.gym += Math.round(minutes * gymEffort(s));
+  }
+  for (const p of state.practices ?? []) {
+    const w = find(p.date);
+    if (w) w.sport += Math.round(p.minutes * p.effort);
+  }
+  return weeks;
+}
+
+/**
+ * Compares this week's load with the average of the three weeks before. A jump of more than 30%
+ * is a common warning sign for overuse injuries; a big drop is fine before a competition.
+ */
+export function loadChange(weeks: { gym: number; sport: number }[]): number | null {
+  if (weeks.length < 4) return null;
+  const tot = (w: { gym: number; sport: number }) => w.gym + w.sport;
+  const prev = weeks.slice(-4, -1).map(tot);
+  if (prev.filter((x) => x > 0).length < 2) return null;
+  const base = prev.reduce((a, b) => a + b, 0) / 3;
+  return base > 0 ? tot(weeks[weeks.length - 1]) / base - 1 : null;
+}
+
+/** The next competition on or after today, and how many days away it is. */
+export function nextMeet(state: AppState, today: string = ymd()): { name: string; date: string; days: number } | null {
+  const m = (state.meets ?? []).find((x) => x.date >= today);
+  return m ? { name: m.name, date: m.date, days: daysBetween(today, m.date) } : null;
+}

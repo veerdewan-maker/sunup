@@ -5,7 +5,7 @@ import { generatePlan, prescription } from './lib/plan';
 import { suggest } from './lib/progression';
 import { calcTargets, dayTargets } from './lib/targets';
 import { uid, ymd } from './lib/util';
-import type { AppState, Checkin, FoodEntry, FoodItem, Meal, MeasureLog, PhotoMeta, Pose, Profile, SavedMeal, Session, SessionExercise, Targets } from './types';
+import type { AppState, Checkin, FoodEntry, FoodItem, Meal, MeasureLog, Meet, PhotoMeta, Pose, Practice, Profile, SavedMeal, Session, SessionExercise, Targets } from './types';
 
 const KEY = 'sunup-state-v1';
 
@@ -25,6 +25,8 @@ export function emptyState(): AppState {
     savedMeals: [],
     measurements: [],
     photos: [],
+    practices: [],
+    meets: [],
     checkins: [],
     settings: { restTimer: true },
   };
@@ -294,8 +296,36 @@ export function quickAdd(date: string, meal: Meal, name: string, m: { kcal: numb
   update((s) => ({ ...s, foodEntries: [...s.foodEntries, entry] }));
 }
 
-export function deleteFoodEntry(id: string) {
+/** Removes an entry and returns a function that puts it back, for an Undo button. */
+export function deleteFoodEntry(id: string): () => void {
+  const i = state.foodEntries.findIndex((e) => e.id === id);
+  const entry = state.foodEntries[i];
   update((s) => ({ ...s, foodEntries: s.foodEntries.filter((e) => e.id !== id) }));
+  return () => {
+    if (!entry) return;
+    update((s) => {
+      const list = [...s.foodEntries];
+      list.splice(Math.min(i, list.length), 0, entry);
+      return { ...s, foodEntries: list };
+    });
+  };
+}
+
+/** Changes how much of a food was eaten, recalculating its macros. */
+export function editFoodQty(id: string, qty: number) {
+  update((s) => ({
+    ...s,
+    foodEntries: s.foodEntries.map((e) => (e.id === id && e.food ? { ...e, qty, qtyLabel: qtyLabel(e.food, qty), ...macrosFor(e.food, qty) } : e)),
+  }));
+}
+
+/** The amount last logged for a food, so it can be added again in one tap. */
+export function lastQty(s: AppState, foodId: string): number | null {
+  for (let i = s.foodEntries.length - 1; i >= 0; i--) {
+    const e = s.foodEntries[i];
+    if (e.food?.id === foodId && e.qty) return e.qty;
+  }
+  return null;
 }
 
 export function copyMeal(fromDate: string, toDate: string, meal: Meal): number {
@@ -409,7 +439,7 @@ export function deleteMeasurements(date: string) {
 export function isTrainingDay(s: AppState, date: string): boolean {
   const manual = s.settings.dayType?.[date];
   if (manual != null) return manual;
-  return s.sessions.some((x) => x.finishedAt && x.date === date) || s.active?.date === date;
+  return s.sessions.some((x) => x.finishedAt && x.date === date) || s.active?.date === date || s.practices.some((x) => x.date === date);
 }
 
 export function targetsFor(s: AppState, date: string): Targets {
@@ -418,6 +448,27 @@ export function targetsFor(s: AppState, date: string): Targets {
 
 export function setDayType(date: string, training: boolean) {
   update((s) => ({ ...s, settings: { ...s.settings, dayType: { ...s.settings.dayType, [date]: training } } }));
+}
+
+// ---------- Sport practices and meets ----------
+
+export function logPractice(p: Omit<Practice, 'id'>): Practice {
+  const practice = { ...p, id: uid() };
+  update((s) => ({ ...s, practices: [...s.practices, practice] }));
+  return practice;
+}
+
+export function deletePractice(id: string) {
+  update((s) => ({ ...s, practices: s.practices.filter((x) => x.id !== id) }));
+}
+
+export function addMeet(date: string, name: string) {
+  const meet: Meet = { id: uid(), date, name: name.trim() || 'Competition' };
+  update((s) => ({ ...s, meets: [...s.meets, meet].sort((a, b) => a.date.localeCompare(b.date)) }));
+}
+
+export function deleteMeet(id: string) {
+  update((s) => ({ ...s, meets: s.meets.filter((m) => m.id !== id) }));
 }
 
 // ---------- Progress photos ----------
