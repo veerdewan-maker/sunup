@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { Bar, Chips, Ring, Sheet, toast } from '../components/ui';
+import { Bar, Chips, NumField, Ring, Sheet, toast } from '../components/ui';
 import { totalsFor } from '../lib/stats';
 import { addDays, niceDate, ymd } from '../lib/util';
 import { useNav } from '../nav';
-import { copyMeal, deleteFoodEntry, isTrainingDay, saveMeal, setDayType, targetsFor, useStore } from '../store';
+import { copyMeal, deleteFoodEntry, editFoodQty, isTrainingDay, macrosFor, saveMeal, setDayType, targetsFor, useStore } from '../store';
 import type { Meal } from '../types';
 import { WaterCard } from './Today';
 
@@ -19,6 +19,7 @@ export function Eat() {
   const nav = useNav();
   const [date, setDate] = useState(ymd());
   const [editing, setEditing] = useState<string | null>(null);
+  const [editQty, setEditQty] = useState<number | null>(null);
   const [saving, setSaving] = useState<Meal | null>(null);
   const [mealName, setMealName] = useState('');
   const totals = totalsFor(s.foodEntries, date);
@@ -82,7 +83,14 @@ export function Eat() {
             {entries.length === 0 && <p className="muted small">Nothing logged yet.</p>}
             {entries.map((e) => (
               <div key={e.id} className="food-row">
-                <button className="row-main" onClick={() => setEditing(editing === e.id ? null : e.id)} aria-expanded={editing === e.id}>
+                <button
+                  className="row-main"
+                  onClick={() => {
+                    setEditing(editing === e.id ? null : e.id);
+                    setEditQty(e.qty ?? null);
+                  }}
+                  aria-expanded={editing === e.id}
+                >
                   <div>
                     <strong>{e.name}</strong>
                     <div className="muted small">
@@ -92,14 +100,40 @@ export function Eat() {
                   </div>
                   <span>{Math.round(e.kcal)}</span>
                 </button>
+                {editing === e.id && e.food && (
+                  <form
+                    className="row-form"
+                    onSubmit={(ev) => {
+                      ev.preventDefault();
+                      if (!editQty || editQty <= 0) return;
+                      editFoodQty(e.id, editQty);
+                      setEditing(null);
+                      toast('Amount updated');
+                    }}
+                  >
+                    <NumField
+                      label={`Amount of ${e.name}`}
+                      bare
+                      value={editQty}
+                      onChange={setEditQty}
+                      suffix={e.food.unit === 'serving' ? '×' : e.food.unit}
+                    />
+                    <button className="btn primary" type="submit" disabled={!editQty || editQty === e.qty}>
+                      Save
+                    </button>
+                  </form>
+                )}
+                {editing === e.id && e.food && editQty != null && editQty > 0 && editQty !== e.qty && (
+                  <p className="muted small">That's {macrosFor(e.food, editQty).kcal} kcal.</p>
+                )}
                 {editing === e.id && (
                   <div className="btn-row">
                     <button
                       className="btn small danger"
                       onClick={() => {
-                        deleteFoodEntry(e.id);
+                        const undo = deleteFoodEntry(e.id);
                         setEditing(null);
-                        toast('Removed');
+                        toast(`Removed ${e.name}`, { label: 'Undo', run: undo });
                       }}
                     >
                       Remove

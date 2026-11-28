@@ -209,6 +209,22 @@ export interface PhotoMeta {
   pose: Pose;
 }
 
+/** A sport practice or game, logged with its length and how hard it was (0 rest to 10 maximal). */
+export interface Practice {
+  id: string;
+  date: string;
+  kind: 'practice' | 'game';
+  minutes: number;
+  effort: number;
+}
+
+/** A competition date (meet, match, race). */
+export interface Meet {
+  id: string;
+  date: string;
+  name: string;
+}
+
 export interface Checkin {
   date: string;
   weightChangeKg: number | null;
@@ -229,6 +245,8 @@ export interface Settings {
   trainCarbs?: number;
   /** Days the user marked as training (true) or rest (false) by hand. */
   dayType?: Record<string, boolean>;
+  /** Date the user hid the weigh-in prompt on Today. */
+  weighSkip?: string;
 }
 
 export interface AppState {
@@ -246,6 +264,8 @@ export interface AppState {
   savedMeals: SavedMeal[];
   measurements: MeasureLog[];
   photos: PhotoMeta[];
+  practices: Practice[];
+  meets: Meet[];
   checkins: Checkin[];
   settings: Settings;
   /** When this copy was written to storage. */

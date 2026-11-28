@@ -1179,3 +1179,59 @@ body {
 .focus-list li::marker {
   color: var(--accent);
 }
+
+/* Toast with an Undo button */
+.toast.with-action {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 4px 4px 16px;
+}
+.toast-btn {
+  min-height: 40px;
+  min-width: 64px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(6, 40, 26, 0.12);
+  color: inherit;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* Food row with a one-tap "add the usual amount" button */
+.food-pick {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--card);
+  border-radius: 14px;
+  padding-right: 10px;
+}
+.food-pick > .list-row {
+  flex: 1;
+  min-width: 0;
+  background: none;
+}
+.list-row.col > .food-pick {
+  background: none;
+  padding-right: 0;
+}
+.quick-add {
+  flex-shrink: 0;
+  max-width: 45%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.weeks.six {
+  grid-template-columns: repeat(6, 1fr);
+}
+.week-bar.stack {
+  flex-direction: column-reverse;
+  justify-content: flex-start;
+}
+.week-bar.stack .week-fill {
+  border-radius: 0;
+}

@@ -1,10 +1,12 @@
-import { Bar, Ring } from '../components/ui';
+import { useState } from 'react';
+import { Bar, NumField, Ring, toast } from '../components/ui';
+import { SportCard } from './SportCard';
 import { getExercise } from '../data/exercises';
 import { GOAL_LABEL } from '../lib/targets';
 import { checkinDue, finished, nextPlanDayIndex, totalsFor, workoutsInWeek } from '../lib/stats';
-import { daysBetween, ymd } from '../lib/util';
+import { daysBetween, fromDisplay, ymd } from '../lib/util';
 import { useNav } from '../nav';
-import { addWater, isTrainingDay, patchSettings, startWorkout, targetsFor, useStore } from '../store';
+import { addWater, isTrainingDay, logWeight, patchSettings, startWorkout, targetsFor, useStore } from '../store';
 import type { Meal } from '../types';
 
 export function mealForNow(): Meal {
@@ -45,6 +47,43 @@ export function WaterCard({ date }: { date: string }) {
           − 250
         </button>
       </div>
+    </section>
+  );
+}
+
+function WeighInCard() {
+  const s = useStore();
+  const units = s.profile!.units;
+  const today = ymd();
+  const [v, setV] = useState<number | null>(null);
+  if (s.weights.some((w) => w.date === today) || s.settings.weighSkip === today) return null;
+  return (
+    <section className="card">
+      <div className="card-head">
+        <h2>Morning weigh-in</h2>
+        <button className="link-btn" onClick={() => patchSettings({ weighSkip: today })}>
+          Skip today
+        </button>
+      </div>
+      <form
+        className="row-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (v == null) return;
+          const kg = fromDisplay(v, units);
+          if (kg < 30 || kg > 300) {
+            toast('That weight looks off. Please check it.');
+            return;
+          }
+          logWeight(today, kg);
+          toast('Weight logged');
+        }}
+      >
+        <NumField label="Weight today" bare value={v} onChange={setV} suffix={units} placeholder="Weight" />
+        <button className="btn primary" type="submit" disabled={v == null}>
+          Log
+        </button>
+      </form>
     </section>
   );
 }
@@ -155,6 +194,10 @@ export function Today() {
           </button>
         )}
       </section>
+
+      <SportCard />
+
+      <WeighInCard />
 
       <section className="card">
         <div className="card-head">

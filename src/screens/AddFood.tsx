@@ -4,7 +4,7 @@ import { searchBuiltin } from '../data/foods';
 import { lookupBarcode, searchOnline } from '../lib/off';
 import { uid } from '../lib/util';
 import { useNav } from '../nav';
-import { addFood, deleteCustomFood, deleteSavedMeal, logSavedMeal, isFavourite, macrosFor, quickAdd, recentFoods, saveCustomFood, toggleFavourite, useStore } from '../store';
+import { addFood, deleteCustomFood, deleteFoodEntry, deleteSavedMeal, getState, lastQty, logSavedMeal, qtyLabel, isFavourite, macrosFor, quickAdd, recentFoods, saveCustomFood, toggleFavourite, useStore } from '../store';
 import type { FoodItem, Meal } from '../types';
 import { MEALS } from './Eat';
 
@@ -15,18 +15,35 @@ function perText(f: FoodItem): string {
   return `${Math.round(f.kcal)} kcal per ${base}`;
 }
 
-function FoodRow({ food, onPick }: { food: FoodItem; onPick: (f: FoodItem) => void }) {
+function FoodRow({ food, onPick, quick }: { food: FoodItem; onPick: (f: FoodItem) => void; quick?: { date: string; meal: Meal } }) {
+  const s = useStore();
+  const last = quick ? lastQty(s, food.id) : null;
   return (
-    <button className="list-row" onClick={() => onPick(food)}>
-      <div>
-        <strong>{food.name}</strong>
-        <div className="muted small">
-          {food.brand ? `${food.brand} · ` : ''}
-          {perText(food)}
+    <div className="food-pick">
+      <button className="list-row" onClick={() => onPick(food)}>
+        <div>
+          <strong>{food.name}</strong>
+          <div className="muted small">
+            {food.brand ? `${food.brand} · ` : ''}
+            {perText(food)}
+          </div>
         </div>
-      </div>
-      <span className="muted">+</span>
-    </button>
+        {!last && <span className="muted">+</span>}
+      </button>
+      {quick && last != null && (
+        <button
+          className="btn small quick-add"
+          aria-label={`Add ${qtyLabel(food, last)} of ${food.name}`}
+          onClick={() => {
+            addFood(quick.date, quick.meal, food, last);
+            const added = getState().foodEntries[getState().foodEntries.length - 1];
+            toast(`Added ${food.name}`, { label: 'Undo', run: () => deleteFoodEntry(added.id) });
+          }}
+        >
+          + {qtyLabel(food, last).replace(' servings', '×').replace(' serving', '×')}
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -340,7 +357,17 @@ export function AddFood({ date, meal }: { date: string; meal: Meal }) {
             </button>
           </form>
           {busy && <p className="muted center">Looking up barcode…</p>}
-          {query.length < 2 && !busy && <Empty>Type at least 2 letters to search, or scan a barcode on a packet.</Empty>}
+          {query.length < 2 && !busy && recent.length === 0 && <Empty>Type at least 2 letters to search, or scan a barcode on a packet.</Empty>}
+          {query.length < 2 && !busy && recent.length > 0 && (
+            <>
+              <div className="label">Recent</div>
+              <div className="list">
+                {recent.slice(0, 8).map((f) => (
+                  <FoodRow key={f.id} food={f} onPick={setPicked} quick={{ date, meal }} />
+                ))}
+              </div>
+            </>
+          )}
           {query.length >= 2 && (
             <>
               {local.length > 0 && <div className="label">Common foods</div>}
@@ -386,7 +413,7 @@ export function AddFood({ date, meal }: { date: string; meal: Meal }) {
           {recent.length === 0 && <Empty>Foods you log will show up here for one-tap adding.</Empty>}
           <div className="list">
             {recent.map((f) => (
-              <FoodRow key={f.id} food={f} onPick={setPicked} />
+              <FoodRow key={f.id} food={f} onPick={setPicked} quick={{ date, meal }} />
             ))}
           </div>
         </>
@@ -397,7 +424,7 @@ export function AddFood({ date, meal }: { date: string; meal: Meal }) {
           {s.favourites.length === 0 && <Empty>No favourites yet. Open any food and tap "Save as favourite".</Empty>}
           <div className="list">
             {s.favourites.map((f) => (
-              <FoodRow key={f.id} food={f} onPick={setPicked} />
+              <FoodRow key={f.id} food={f} onPick={setPicked} quick={{ date, meal }} />
             ))}
           </div>
         </>
