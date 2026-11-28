@@ -218,3 +218,50 @@ describe('training load and competitions', () => {
     expect(nextMeet(st, today)).toMatchObject({ name: 'Regionals', days: 3 });
   });
 });
+
+describe('warm-ups, readiness and weekly recap', () => {
+  it('ramps up to a heavy barbell set in loadable steps', async () => {
+    const { warmups } = await import('./progression');
+    const w = warmups(100, 'kg', true);
+    expect(w.map((x) => x.weightKg)).toEqual([20, 40, 60, 80]);
+    expect(w.map((x) => x.reps)).toEqual([10, 8, 5, 3]);
+    expect(warmups(25, 'kg', true).map((x) => x.weightKg)).toEqual([20]);
+    const lb = warmups(225 * 0.45359237, 'lb', true).map((x) => Math.round(x.weightKg / 0.45359237));
+    expect(lb).toEqual([45, 90, 135, 180]);
+    expect(warmups(0, 'kg', true)).toEqual([]);
+    expect(warmups(65, 'kg', true).map((x) => x.weightKg)).toEqual([20, 40, 52.5]);
+  });
+  it('suggests a lighter workout on a low-readiness day and trims a set', async () => {
+    const store = await import('../store');
+    store.__setLoadedForTests({ ...store.emptyState(), profile: base, plan: generatePlan(base) });
+    const today = ymd();
+    store.setReadiness(today, { sleep: 1, soreness: 1, energy: 2 });
+    expect(store.getState().readiness[today].light).toBe(true);
+    store.setReadiness(today, { sleep: 3, soreness: 3, energy: 3 });
+    expect(store.getState().readiness[today].light).toBe(false);
+    store.setReadiness(today, { sleep: 1, soreness: 1, energy: 1, light: true });
+    const plan = store.getState().plan!;
+    store.startWorkout(plan.days[0].id);
+    const a = store.getState().active!;
+    expect(a.exercises[0].sets.length).toBe(plan.days[0].exercises[0].sets - 1);
+    expect(a.exercises[0].hint).toMatch(/Lighter day/);
+    store.discardWorkout();
+  });
+  it('sums up last week', async () => {
+    const { weeklyRecap } = await import('./stats');
+    const store = await import('../store');
+    const { sessionPRs } = await import('./progression');
+    const today = ymd();
+    const lastMon = addDays(today, -((new Date().getDay() + 6) % 7) - 7);
+    const st = { ...store.emptyState(), profile: { ...base, createdAt: addDays(today, -30) + 'T00:00:00Z' } };
+    const at = (d: string) => new Date(d + 'T12:00:00').getTime();
+    const mk = (id: string, d: string, w: number): Session => ({ id, date: d, startedAt: at(d), finishedAt: at(d) + 3600000, name: 'x', exercises: [{ exId: 'bench-press', repMin: 8, repMax: 12, restSec: 90, sets: [{ weightKg: w, reps: 8, done: true }] }] });
+    st.sessions = [mk('a', addDays(lastMon, -3), 60), mk('b', lastMon, 65), mk('c', addDays(lastMon, 2), 60)];
+    st.foodEntries = [{ id: 'f', date: lastMon, meal: 'lunch', name: 'x', qtyLabel: '', kcal: 1000, protein: 200, carbs: 0, fat: 0 }];
+    const r = weeklyRecap(st, sessionPRs, today)!;
+    expect(r.week).toBe(lastMon);
+    expect(r.workouts).toBe(2);
+    expect(r.prs).toBe(1);
+    expect(r.proteinDays).toBe(1);
+  });
+});

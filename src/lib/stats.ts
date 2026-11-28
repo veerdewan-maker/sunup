@@ -201,3 +201,43 @@ export function nextMeet(state: AppState, today: string = ymd()): { name: string
   const m = (state.meets ?? []).find((x) => x.date >= today);
   return m ? { name: m.name, date: m.date, days: daysBetween(today, m.date) } : null;
 }
+
+export interface Recap {
+  week: string;
+  workouts: number;
+  planned: number;
+  practices: number;
+  prs: number;
+  proteinDays: number;
+  loggedDays: number;
+  weightChangeKg: number | null;
+}
+
+/** A summary of last week (Monday to Sunday) to show at the start of a new week. */
+export function weeklyRecap(state: AppState, prsFor: (s: Session, earlier: Session[]) => unknown[], today: string = ymd()): Recap | null {
+  const p = state.profile;
+  if (!p) return null;
+  const week = addDays(weekStart(today), -7);
+  const end = addDays(week, 6);
+  if (p.createdAt.slice(0, 10) > end) return null;
+  const inWeek = (d: string) => d >= week && d <= end;
+  const done = finished(state.sessions);
+  const sessions = done.filter((s) => inWeek(s.date));
+  let prs = 0;
+  for (const s of sessions) prs += prsFor(s, done.filter((x) => x.startedAt < s.startedAt)).length;
+  const byDay = new Map<string, number>();
+  for (const e of state.foodEntries) if (inWeek(e.date)) byDay.set(e.date, (byDay.get(e.date) ?? 0) + e.protein);
+  const proteinDays = [...byDay.values()].filter((g) => g >= state.targets.protein * 0.9).length;
+  const a = avgWeight(state.weights, end);
+  const b = avgWeight(state.weights, addDays(end, -7));
+  return {
+    week,
+    workouts: sessions.length,
+    planned: p.days,
+    practices: (state.practices ?? []).filter((x) => inWeek(x.date)).length,
+    prs,
+    proteinDays,
+    loggedDays: byDay.size,
+    weightChangeKg: a != null && b != null ? a - b : null,
+  };
+}

@@ -1235,3 +1235,24 @@ body {
 .week-bar.stack .week-fill {
   border-radius: 0;
 }
+
+/* Readiness check */
+.ready-row {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.warmup-list {
+  display: grid;
+  gap: 2px;
+  margin: 4px 0 8px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--track);
+  font-size: 14px;
+}
+.edit-ex {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 14px;
+}

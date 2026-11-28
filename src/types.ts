@@ -225,6 +225,14 @@ export interface Meet {
   name: string;
 }
 
+/** Morning check: each answer is 1 (bad) to 3 (good). `light` trims that day's workout. */
+export interface Readiness {
+  sleep: number;
+  soreness: number;
+  energy: number;
+  light: boolean;
+}
+
 export interface Checkin {
   date: string;
   weightChangeKg: number | null;
@@ -247,6 +255,8 @@ export interface Settings {
   dayType?: Record<string, boolean>;
   /** Date the user hid the weigh-in prompt on Today. */
   weighSkip?: string;
+  /** Week (its Monday) whose recap the user has closed. */
+  recapSeen?: string;
 }
 
 export interface AppState {
@@ -266,6 +276,7 @@ export interface AppState {
   photos: PhotoMeta[];
   practices: Practice[];
   meets: Meet[];
+  readiness: Record<string, Readiness>;
   checkins: Checkin[];
   settings: Settings;
   /** When this copy was written to storage. */

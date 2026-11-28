@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Bar, NumField, Ring, toast } from '../components/ui';
 import { SportCard } from './SportCard';
+import { ReadinessCard, RecapCard } from './TodayCards';
 import { getExercise } from '../data/exercises';
 import { GOAL_LABEL } from '../lib/targets';
 import { checkinDue, finished, nextPlanDayIndex, totalsFor, workoutsInWeek } from '../lib/stats';
@@ -165,6 +166,10 @@ export function Today() {
           </button>
         </section>
       )}
+
+      <RecapCard />
+
+      {!doneToday && !s.active && <ReadinessCard />}
 
       <section className="card">
         <div className="card-head">
